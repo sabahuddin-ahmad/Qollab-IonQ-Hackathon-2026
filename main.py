@@ -22,15 +22,25 @@ def is_ionq(backend) -> bool:
     return "ionq" in (str(getattr(backend, "name", "")) + type(backend).__module__).lower()
 
 
-def main(shots: int = 1024, months: int = 1):
+def main(shots: int = 1024, month: str = "2017-12", all_three_months: bool = False):
     demo = json.load(open("demo/qr1_demo.json"))
     J = np.array(demo["couplings"])
     r = demo["trotter_steps"]
-    chosen = demo["months"][-max(1, min(months, len(demo["months"]))):]
+    available = [m["date"] for m in demo["months"]]
 
     # IonQ backends do not accept mid-circuit reset, so they get the 24-qubit layout in which each
     # month has its own input qubits. It produces the same outcome distribution as the 10-qubit one.
+    # They also accept only one circuit per job, so they always forecast a single month.
     unrolled = is_ionq(backend)
+    if all_three_months and unrolled:
+        print("IonQ backends take one circuit per job, so this run forecasts one month only.")
+    if month not in available:
+        print(f"Month {month!r} is not in the demo data; using {available[-1]}. Available: {', '.join(available)}")
+        month = available[-1]
+    if all_three_months and not unrolled:
+        chosen = demo["months"]
+    else:
+        chosen = [m for m in demo["months"] if m["date"] == month]
     circuits = [qr1_circuit(np.array(m["inputs"]), J, r=r, unrolled=unrolled, finish="measure") for m in chosen]
     c = circuits[0]
     print(f"Backend: {getattr(backend, 'name', type(backend).__name__)}")
