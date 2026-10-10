@@ -1,11 +1,15 @@
 """Build demo/qr1_demo.json, the only data main.py reads on Qollab.
 
 Holds, for the last few out-of-sample months: the scaled inputs, the realized value, frozen
-readout weights, the features an ideal run should return, and the classical forecasts. The
-weights are trained locally on features from the same circuit the demo runs (2 Trotter steps,
-no noise), sampled at each supported shot count so training matches what the demo measures.
+readout weights, the features a run should return, and the classical forecasts. The weights
+are trained locally on features from the same circuit the demo runs (2 Trotter steps), sampled
+at each supported shot count so training matches what the demo measures.
 
-Needs the noiseless cache from: scripts/sweep_qrc.py simulate --limit 1
+Two sets of weights: noiseless, for ideal simulators, and noise-matched, for IonQ backends,
+whose simulator applies a device noise model. The matched set is trained under our generic
+depolarizing model at the cached level closest to what IonQ's simulator returned.
+
+Needs the caches from: scripts/sweep_qrc.py simulate --limit 5
 
 Usage: .venv/bin/python scripts/make_demo.py
 """
@@ -29,7 +33,11 @@ from src.qrc.reference import couplings
 from sweep_qrc import cache_path, choose_ridge, load_inputs, sample
 
 SEED, TROTTER_STEPS, N_MONTHS = 0, 2, 3
-SHOT_LEVELS = [256, 1024, 4096]
+SHOT_LEVELS = [128, 256, 512, 1024, 4096]
+# One 100-shot run on the IonQ Forte 1 simulator (2026-10-10) returned features at about 0.69 of
+# their ideal size, equivalent to roughly 1.6% depolarizing error per RXX in our model. 0.01 is
+# the nearest cached level; change this once a closer level has been simulated.
+IONQ_MATCH_P2 = 0.01
 BASELINES = ["HARX", "ARMAX", "HAR", "AR3", "RC", "RCX"]
 
 
@@ -49,12 +57,17 @@ def main() -> None:
     path = cache_path(SEED, "gate", 0.0, TROTTER_STEPS)
     if not path.exists():
         raise SystemExit(f"missing {path}; run: scripts/sweep_qrc.py simulate --limit 1")
-    P = np.load(path)[rows]
-    Z_exact = z_from_probabilities(P)
+    noisy_path = cache_path(SEED, "gate", IONQ_MATCH_P2, TROTTER_STEPS)
+    if not noisy_path.exists():
+        raise SystemExit(f"missing {noisy_path}; run: scripts/sweep_qrc.py simulate --limit 5")
+    P, P_noisy = np.load(path)[rows], np.load(noisy_path)[rows]
+    Z_exact, Z_noisy = z_from_probabilities(P), z_from_probabilities(P_noisy)
 
     rng = np.random.default_rng(2026)
     sampled = {shots: sample(P, shots, rng) for shots in SHOT_LEVELS}
     ridges = {shots: choose_ridge(Z, y_scaled, oos[0]) for shots, Z in sampled.items()}
+    sampled_noisy = {shots: sample(P_noisy, shots, rng) for shots in SHOT_LEVELS}
+    ridges_noisy = {shots: choose_ridge(Z, y_scaled, oos[0]) for shots, Z in sampled_noisy.items()}
 
     classical = pd.read_csv(ROOT / "data/oos_classical.csv", parse_dates=["date"]).set_index("date")
     qr1 = pd.read_csv(ROOT / "data/oos_qr1.csv", parse_dates=["date"]).set_index("date")
@@ -68,6 +81,9 @@ def main() -> None:
             "actual_log_rv": float(full["y"].iloc[j]),
             "ideal_features": Z_exact[j].tolist(),
             "weights": {str(s): frozen_weights(sampled[s], y_scaled, j, ridges[s]).tolist() for s in SHOT_LEVELS},
+            "noise_matched_features": Z_noisy[j].tolist(),
+            "noise_matched_weights": {str(s): frozen_weights(sampled_noisy[s], y_scaled, j, ridges_noisy[s]).tolist()
+                                      for s in SHOT_LEVELS},
             "classical_forecasts": {m: float(classical.loc[date, m]) for m in BASELINES},
         })
 
@@ -87,6 +103,7 @@ def main() -> None:
         "target_hi": target.hi,
         "shot_levels": SHOT_LEVELS,
         "ridge_by_shots": {str(s): ridges[s] for s in SHOT_LEVELS},
+        "noise_match_p2": IONQ_MATCH_P2,
         "months": months,
         "table": sorted(table, key=lambda r: r["mse"]),
     }

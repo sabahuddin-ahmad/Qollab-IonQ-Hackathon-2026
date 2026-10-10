@@ -42,21 +42,30 @@ def main(shots: int = 1024, months: int = 1):
 
     level = min(demo["shot_levels"], key=lambda s: abs(s - shots))
     lo, hi = demo["target_lo"], demo["target_hi"]
+    # IonQ's simulator applies a device noise model, so it gets weights trained under matched noise.
+    weights_key = "noise_matched_weights" if unrolled else "weights"
     for i, m in enumerate(chosen):
         z = z_from_counts(result.get_counts(i) if len(circuits) > 1 else result.get_counts())
-        forecast = (float(z @ np.array(m["weights"][str(level)])) + 1.0) * (hi - lo) + lo
+        forecast = (float(z @ np.array(m[weights_key][str(level)])) + 1.0) * (hi - lo) + lo
         ideal = np.array(m["ideal_features"])
         print(f"\nForecast month {m['date']}  (log realized volatility)")
         print(f"  measured <Z> per qubit : {np.round(z, 3).tolist()}")
         print(f"  ideal, no shot noise   : {np.round(ideal, 3).tolist()}")
         print(f"  largest difference     : {np.abs(z - ideal).max():.3f}")
+        print(f"  signal kept vs ideal   : {float(z @ ideal / (ideal @ ideal)):.2f}")
+        if unrolled:
+            expected = np.array(m["noise_matched_features"])
+            print(f"  local noise model      : {np.round(expected, 3).tolist()}")
+            print(f"  difference from it     : {np.abs(z - expected).max():.3f}")
         print(f"  QR1 forecast (this run): {forecast:.4f}")
         print(f"  realized value         : {m['actual_log_rv']:.4f}   error {forecast - m['actual_log_rv']:+.4f}")
         for name, value in m["classical_forecasts"].items():
             print(f"  {name:5s} forecast         : {value:.4f}   error {value - m['actual_log_rv']:+.4f}")
     print(f"\nReadout: 10 frozen weights trained locally on features sampled at {level} shots.")
     if unrolled:
-        print("Note: this backend applies its own device noise model; the weights were trained without noise.")
+        print(f"Note: this backend applies a device noise model. These weights were trained locally under a "
+              f"generic depolarizing model ({demo['noise_match_p2']:.1%} per two-qubit gate) chosen to match "
+              f"the signal loss seen on IonQ's simulator. It approximates IonQ's noise; it is not their model.")
 
     print("\nFull benchmark, 245 months Aug 1997 - Dec 2017, computed locally (not in this run):")
     print(f"  {'model':34s} {'MSE':>7s}  trained weights")

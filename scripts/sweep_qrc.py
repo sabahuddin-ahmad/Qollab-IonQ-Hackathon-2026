@@ -36,7 +36,7 @@ from src.qrc.readout import RidgeReadout
 from src.qrc.reference import couplings, evolution, reservoir_features
 
 CACHE = ROOT / "cache" / "qr1_probs"
-GATE_LEVELS = [0.0, 0.001, 0.004, 0.01, 0.03]
+GATE_LEVELS = [0.0, 0.001, 0.004, 0.01, 0.016, 0.02, 0.03]  # 0.016 and 0.02 bracket what IonQ's simulator showed
 DAMPING_LEVELS = [0.03, 0.1, 0.3, 1.0]
 SHOTS = [256, 1024, 4096, None]  # None = exact expectation values
 RIDGES = [1e-8, 1e-4, 1e-3, 1e-2, 1e-1, 1.0]
@@ -48,7 +48,7 @@ def settings() -> list[tuple[int, str, float, int]]:
     out = [(0, "gate", p, 2) for p in GATE_LEVELS]
     out += [(0, "damping", g, 2) for g in DAMPING_LEVELS]
     out += [(0, "gate", p, r) for r in (1, 4) for p in (0.0, 0.004)]  # depth against noise
-    out += [(s, "gate", p, 2) for s in (1, 2) for p in GATE_LEVELS]
+    out += [(s, "gate", p, 2) for s in (1, 2) for p in (0.0, 0.001, 0.004, 0.01, 0.03)]
     return out
 
 
