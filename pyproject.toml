@@ -1,7 +1,30 @@
 [project]
 name = "qollab-ionq-hackathon-2026"
 version = "0.1.0"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
 dependencies = [
-    "qiskit>=2.5.2",
+    # Qollab runtime default is qiskit>=2.5.2,<3.0.0 on Python 3.14 + NumPy 2.x.
+    # Keep the same upper bound locally so circuits compile identically.
+    # (Not imported by scripts yet; needed for the QR1/QR2 Qiskit port.)
+    "qiskit>=2.5.2,<3.0.0",
+    # Local simulator. Matches Qollab's PQCA library pin (qiskit_aer==0.17.2).
+    # Qollab provides Aer only via that Libraries entry; do NOT put this in
+    # Qollab requirements.txt unless the PQCA library is selected.
+    "qiskit-aer==0.17.2",
+    # Pyodide built-in on Qollab (NumPy): do NOT list it in Qollab
+    # requirements.txt, it loads on import. Needed locally.
+    "numpy>=1.26",
+    # Pyodide-ported, Qollab-safe: pure/wheel builds exist, usable in main.py
+    # via requirements.txt. Pandas for data handling, sklearn for the linear
+    # readout (Ridge) on reservoir states.
+    "pandas>=2.0",
+    "scikit-learn>=1.4",
+    # Data pull (Yahoo/French/Shiller/FRED in scripts/pull_data.py).
+    "requests>=2.31",
+    # Shiller ie_data.xls parsing in scripts/pull_data.py (local-only need,
+    # keep out of Qollab requirements.txt; the Qollab demo ships a CSV).
+    "xlrd==2.0.2",
+    # Paper-faithful classical RC/RCX in scripts/bench_rc.py (local-only:
+    # no Pyodide build; keep out of Qollab requirements.txt).
+    "reservoirpy==0.4.2",
 ]
