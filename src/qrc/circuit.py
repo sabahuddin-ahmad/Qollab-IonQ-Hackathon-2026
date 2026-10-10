@@ -72,16 +72,17 @@ def qr1_circuit(
     return qc
 
 
-def outcome_probabilities(circuits, noise_model=None, method: str = "density_matrix") -> np.ndarray:
+def outcome_probabilities(circuits, noise_model=None, method: str = "density_matrix", **sim_options) -> np.ndarray:
     """Exact outcome distributions, one row of 1024 per circuit, simulated locally on Aer.
 
     Circuits are run as built (rxx, rz, ry, reset): no transpilation, so gate noise attaches to
     the gates the spec names. Use ``method="statevector"`` for noiseless unrolled circuits.
+    Extra keyword arguments go to ``AerSimulator`` (e.g. ``max_parallel_experiments=0`` for batches).
     """
     from qiskit_aer import AerSimulator
 
     circuits = [circuits] if isinstance(circuits, QuantumCircuit) else list(circuits)
-    sim = AerSimulator(method=method, noise_model=noise_model)
+    sim = AerSimulator(method=method, noise_model=noise_model, **sim_options)
     result = sim.run(circuits, shots=1).result()
     return np.array([result.data(i)[LABEL] for i in range(len(circuits))])
 
