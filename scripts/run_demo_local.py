@@ -4,7 +4,7 @@ Default backend is Qiskit's BasicSimulator, the class behind Qollab's built-in s
 ``--as-ionq`` exercises the 24-qubit no-reset path that IonQ backends get, simulated locally
 on Aer under an IonQ-like name. It checks the code path only; it is not IonQ's simulator.
 
-Usage: .venv/bin/python scripts/run_demo_local.py [--shots 1024] [--months 1] [--as-ionq]
+Usage: .venv/bin/python scripts/run_demo_local.py [--shots 1024] [--month 2017-12] [--all-three-months] [--as-ionq]
 """
 
 from __future__ import annotations
@@ -23,13 +23,17 @@ class _AerAsIonq:
     def run(self, circuits, shots):
         from qiskit_aer import AerSimulator
 
+        if isinstance(circuits, (list, tuple)):  # what Qollab's IonQ backends do with a list
+            raise RuntimeError("Only job type ionq.circuit.v1 is supported")
+
         return AerSimulator(method="statevector").run(circuits, shots=shots)
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--shots", type=int, default=1024)
-    ap.add_argument("--months", type=int, default=1)
+    ap.add_argument("--month", default="2017-12")
+    ap.add_argument("--all-three-months", action="store_true")
     ap.add_argument("--as-ionq", action="store_true")
     args = ap.parse_args()
 
@@ -44,7 +48,7 @@ def main() -> None:
     sys.path.insert(0, str(ROOT))  # and imports src.* from it, as on Qollab
     scope = {"backend": backend, "__name__": "qollab_main"}
     exec(compile((ROOT / "main.py").read_text(), "main.py", "exec"), scope)
-    scope["main"](shots=args.shots, months=args.months)
+    scope["main"](shots=args.shots, month=args.month, all_three_months=args.all_three_months)
 
 
 if __name__ == "__main__":
