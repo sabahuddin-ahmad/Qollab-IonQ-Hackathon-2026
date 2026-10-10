@@ -4,7 +4,7 @@ Status: draft for review by Ali K. Owner of the implementation: Sabah (`src/qrc/
 
 This describes the quantum reservoir "QR1" of Li et al., *Quantum Reservoir Computing for Realized Volatility Forecasting* (arXiv:2505.13933), precisely enough to implement it three ways: an exact reference, a Qiskit circuit for local Aer studies, and the single-job Qollab demo.
 
-**How far to trust it.** The description was checked by re-implementing it from scratch in NumPy and running it privately on the authors' released data and coupling matrix: it reproduces their saved QR1 forecasts to 1.2e-6 (their GPU code is single precision) and their printed MSE 0.10508. The numbers in section 8 come from that throwaway check, not from code in this repo, and must be reproduced by our implementation before we quote them.
+**How far to trust it.** The description was checked by re-implementing it from scratch in NumPy and running it privately on the authors' released data and coupling matrix: it reproduces their saved QR1 forecasts to 1.2e-6 (their GPU code is single precision) and their printed MSE 0.10508. The accuracy table in section 8 is produced by code in this repo (`scripts/bench_qrc.py`), and the acceptance checks in section 7 are `tests/test_qrc.py`. The Trotter and noise tables in sections 6 and 6a still come from a throwaway probe on a single random input and must be reproduced on real months before we quote them.
 
 **Provenance.** Written from the paper and from reading the authors' released code (unlicensed; consulted, nothing copied). Couplings are drawn by us. Record this in `DISCLOSURES.md`.
 
@@ -123,23 +123,30 @@ Rules for the study:
 
 ## 8. What to expect
 
-From the throwaway check, authors' protocol, out-of-sample MSE on log RV over the 245 test months:
+**This repo's numbers** (`scripts/bench_qrc.py` and `scripts/bench_classical.py`, same harness, correctly aligned, out-of-sample MSE on log RV over the 245 test months):
 
-| Model | MSE |
-| --- | --- |
-| Authors' QR1, their coupling draw (reproduced) | 0.1051 |
-| QR1, 20 of our own coupling seeds, authors' data | 0.1105 mean, sd 0.0020, range 0.1058–0.1137 |
-| QR1, 10 of our own seeds, our rebuilt panel | 0.1086 mean, sd 0.0016, range 0.1051–0.1120 |
-| HARX, correctly aligned | 0.1043 |
-| HAR, correctly aligned | 0.1153 |
-| AR3 | 0.1178 |
-| Persistence (last month's value) | 0.1428 |
+| Model | MSE | Trained parameters |
+| --- | --- | --- |
+| HARX | 0.1030 | 14 |
+| ARMAX | 0.1070 | 14 |
+| **QR1, exact, mean of 20 coupling seeds** | **0.1102** (sd 0.0020, range 0.1056–0.1133) | 10 |
+| HAR | 0.1154 | 4 |
+| RC (classical reservoir) | 0.1171 | 51 |
+| AR3 | 0.1180 | 4 |
+| RCX (classical reservoir with macro features) | 0.1224 | 21 |
+| AR1 | 0.1302 | 2 |
+| Persistence | 0.1433 | 0 |
+
+QR1 with clean (pre-August-1997) feature scaling: 0.1110 mean, sd 0.0019. Averaging the 20 seeds' forecasts gives 0.1083.
+
+For reference, from the private check on the authors' own data: their QR1 with their coupling draw is 0.1051 (reproduced); 20 of our coupling seeds on their data give 0.1105 mean, sd 0.0020, best 0.1058.
 
 Consequences for how we present the work:
 
-- None of our 20 seeds reached the authors' 0.1051 on their data; their draw sits about 2.7 standard deviations better than a typical one, and their feature set was chosen by forward selection for that draw. Report QR1 as a **mean and spread over seeds**, never a single best seed.
-- A typical QR1 beats persistence, AR3 and correctly-scored HAR, and trails correctly-scored HARX by roughly 4–6%. "Matches the best corrected baseline" is too strong; "second only to HARX" is accurate.
-- HARX has 8 fitted coefficients and QR1 has 10, so there is **no parameter-count advantage over HARX**. The efficiency argument holds against the LSTM and the classical reservoir, not against the linear models. The roadmap's framing needs adjusting to say this.
+- None of our seeds reached the authors' 0.1051; their draw sits about 2.7 standard deviations better than a typical one, and their feature set was chosen by forward selection for that draw. Report QR1 as a **mean and spread over seeds**, never a single best seed.
+- QR1 ranks third. It beat HARX in 0 of 20 seeds and ARMAX in 1 of 20, so it does **not** match the best classical models; both are linear regressions on the same macro features.
+- QR1 beat both classical reservoirs, HAR and AR3 in 20 of 20 seeds. The like-for-like comparison is reservoir against reservoir: same idea (fixed random dynamics, linear readout), and the quantum one reaches about 10% lower error than RCX with 10 trained weights instead of 21. That is the defensible "where the quantum part improves" claim.
+- There is no parameter-count or accuracy advantage over HARX. The roadmap's framing needs adjusting to say this.
 
 ## 9. Decisions for Ali K
 
