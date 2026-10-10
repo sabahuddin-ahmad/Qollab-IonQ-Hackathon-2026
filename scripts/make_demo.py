@@ -34,10 +34,11 @@ from sweep_qrc import cache_path, choose_ridge, load_inputs, sample
 
 SEED, TROTTER_STEPS, N_MONTHS = 0, 2, 3
 SHOT_LEVELS = [128, 256, 512, 1024, 4096]
-# One 100-shot run on the IonQ Forte 1 simulator (2026-10-10) returned features at about 0.69 of
-# their ideal size, equivalent to roughly 1.6% depolarizing error per RXX in our model. 0.01 is
-# the nearest cached level; change this once a closer level has been simulated.
-IONQ_MATCH_P2 = 0.01
+# Calibrated on the IonQ Forte 1 simulator, 2026-10-10, forecast month 2017-12, 24-qubit layout:
+# a 500-shot run kept 0.65 of the ideal signal (inputs 0.75, hidden qubits 0.38). Our generic
+# depolarizing model at 1.6% per RXX gives 0.68 (0.78, 0.43) and agrees with the ten measured
+# values within shot noise (chi-squared 11.1); 1% and 3% do not (73 and 89). One month, one run.
+IONQ_MATCH_P2 = 0.016
 BASELINES = ["HARX", "ARMAX", "HAR", "AR3", "RC", "RCX"]
 
 
