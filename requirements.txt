@@ -1,7 +1,3 @@
-dill==0.4.1
-numpy==2.4.6
-qiskit==2.5.2
-rustworkx==0.18.1
-scipy==1.17.1
-stevedore==5.9.1
-typing-extensions==4.16.0
+# Qollab runtime only (browser Pyodide). NumPy and SciPy ship with the runtime: pinning them
+# to other versions stops the run. Local development uses pyproject.toml and uv.lock instead.
+qiskit>=2.5.2,<3.0.0
