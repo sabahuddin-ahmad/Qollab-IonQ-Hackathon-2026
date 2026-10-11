@@ -1,5 +1,8 @@
 # Quantum Reservoir Computing for Realized Volatility
 
+**Team QuanTech** (Sabah Ud Din Ahmad, Ali Karimi, Ali Mahani) · Qollab × IonQ Hackathon 2026 ·
+Theme: Quantum Impact · Built with Qiskit
+
 A reproduction and stress test of Li et al.'s quantum reservoir computing (QRC) benchmark
 for S&P 500 monthly realized volatility, built for the Qollab × IonQ Hackathon 2026
 (theme: Quantum Impact). The repository contains the paper's classical benchmarks
@@ -19,9 +22,12 @@ point that runs it on IonQ's simulator through Qollab.
   a noiseless simulation fails; a noise-matched one keeps most of the accuracy, given about
   1,000 shots per circuit. One calibration circuit was enough to match IonQ's Forte 1
   simulator with a generic 1.6% depolarizing model.
-- **The quantum dynamics help the reservoir alone, not a hybrid.** Switching the entangling
-  gates off makes QR1 9% worse on its own. Added to HARX, the reservoir's benefit comes
-  entirely from its input encoding, a classical transform.
+- **The entangling dynamics matter for the reservoir.** Switching the entangling gates off makes
+  QR1 9% worse on its own.
+- **A hybrid of HARX and the reservoir edges HARX.** Feeding the reservoir's measured values
+  into HARX alongside its own inputs gives 0.1009 against 0.1030, ahead on all 20 random
+  reservoirs and stable under device noise. The gain is 2% and not statistically
+  significant, and our control traces it to the input encoding, not to entanglement.
 - **This is not a quantum-advantage claim.** Nothing here ran on quantum hardware, and ten
   qubits are simulated exactly on a laptop in milliseconds.
 
@@ -288,6 +294,26 @@ per added qubit.
 ![Size and time per forecast](docs/figures/complexity.png)
 
 ![Scaling with qubits, memory and shots](docs/figures/scaling_qubits.png)
+
+### The hybrid model
+
+HARX alone is slightly ahead of the reservoir alone, so we combined them: HARX's 13 inputs
+and the reservoir's ten measured values go into one linear readout (ridge penalty on the
+reservoir's values only).
+
+| Model | MSE | Note |
+| --- | --- | --- |
+| HARX alone | 0.1030 | 14 weights |
+| HARX + quantum reservoir values | 0.1009 | ahead of HARX on all 20 random reservoirs |
+| HARX, then reservoir fitted to its residual | 0.1021 | ahead of HARX on all 20 |
+
+- The gain is 1 to 2%, which is not statistically significant on 245 months.
+- It holds under gate noise up to 3% and down to 256 shots (0.100 to 0.102 with a matched
+  readout), and on IonQ's simulator the hybrid's forecasts stayed within 0.05 of HARX's.
+- The Qollab run computes this hybrid forecast live from the values it measures.
+
+`scripts/hybrid_qrc.py` and `scripts/hybrid_variants.py` hold these experiments; the next
+section shows where the gain comes from.
 
 ### Where the value comes from
 

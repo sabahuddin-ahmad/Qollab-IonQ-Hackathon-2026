@@ -184,7 +184,7 @@ Consequences for how we present the work:
 - None of our seeds reached the authors' 0.1051; their draw sits about 2.7 standard deviations better than a typical one, and their feature set was chosen by forward selection for that draw. Report QR1 as a **mean and spread over seeds**, never a single best seed.
 - QR1 ranks third. It beat HARX in 0 of 20 seeds and ARMAX in 1 of 20, so it does **not** match the best classical models; both are linear regressions on the same macro features.
 - QR1 beat both classical reservoirs, HAR and AR3 in 20 of 20 seeds. The like-for-like comparison is reservoir against reservoir: same idea (fixed random dynamics, linear readout), and the quantum one reaches about 10% lower error than RCX with 10 trained weights instead of 21. That is the defensible "where the quantum part improves" claim.
-- There is no parameter-count or accuracy advantage over HARX. The roadmap's framing needs adjusting to say this.
+- There is no parameter-count or accuracy advantage over HARX.
 
 ## 9. Decisions for Ali K
 
