@@ -1,0 +1,27 @@
+{
+  "note": "Runs of main.py on Qollab's IonQ Forte 1 simulator (free, noise-model). Values copied from the Qollab console output. 24-qubit no-reset layout, 270 RXX gates, coupling seed 0, 2 Trotter steps.",
+  "runs": [
+    {
+      "date": "2026-10-10",
+      "backend": "ionq_simulator (IonQ Forte 1, via Qollab)",
+      "forecast_month": "2017-12",
+      "shots": 100,
+      "execution_seconds": 34,
+      "measured_z": [-0.52, 0.22, 0.54, 0.6, -0.6, 0.68, 0.6, 0.3, 0.44, 0.24],
+      "readout_weights": "trained without noise",
+      "forecast_log_rv": -3.0156,
+      "realized_log_rv": -4.1606
+    },
+    {
+      "date": "2026-10-10",
+      "backend": "ionq_simulator (IonQ Forte 1, via Qollab)",
+      "forecast_month": "2017-12",
+      "shots": 500,
+      "execution_seconds": 163,
+      "measured_z": [-0.424, 0.316, 0.66, 0.624, -0.544, 0.564, 0.612, 0.232, 0.288, 0.236],
+      "readout_weights": "trained under 1% depolarizing noise",
+      "forecast_log_rv": -3.2684,
+      "realized_log_rv": -4.1606
+    }
+  ]
+}
