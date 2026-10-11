@@ -68,16 +68,19 @@ Run the tests with `uv run --with pytest python -m pytest tests -q`.
 ## Run it on Qollab
 
 1. Build the upload: `uv run python scripts/make_qollab_zip.py` writes `qollab_qr1.zip`, the
-   seven files a run needs (`main.py`, `requirements.txt`, `demo/qr1_demo.json` and two
+   nine files a run needs (`main.py`, `requirements.txt`, `demo/qr1_demo.json` and four
    modules under `src/qrc/`). The whole repository also fits Qollab's limits if you prefer
    to upload it as it is.
 2. Create a Qollab project from the zip, with `main.py` at the top level.
 3. Pick a backend in Select QPU, set the fields below and run.
 
-Each run builds one forecast circuit, submits it as one job, and prints three things: the
-ten values measured on the quantum device next to their ideal values, the forecast those
-give next to the classical models' forecasts and the realized value, and the full
-benchmark table. Nothing is trained during the run; `main.py`'s header explains what runs
+Each run builds one forecast circuit, submits it as one job, and shows, in order: the
+story in five lines with a figure of the three headline findings; the circuit; the ten
+values measured on the quantum device next to their ideal values; the forecast those give
+through both readouts (noise-matched and not) and through the hybrid readout that adds
+them to HARX's inputs, next to the classical models' forecasts; actual against predicted
+over all 245 months for the reservoir, HARX and the hybrid; and the full benchmark table. Figures are drawn with matplotlib; if they cannot be shown, or
+with `plots` off, the same content is printed as text charts. Nothing is trained during the run; `main.py`'s header explains what runs
 where.
 
 | Field | Meaning |
@@ -86,6 +89,7 @@ where.
 | `month` | Forecast month: `2017-10`, `2017-11` or `2017-12` |
 | `all_three_months` | Run all three months in one job (built-in simulator only) |
 | `mid_circuit` | On IonQ backends, measure each earlier month's input qubits mid-circuit |
+| `plots` | Show figures (default on); text charts when off |
 
 - **Built-in simulator:** the 10-qubit circuit, with the input qubits reset between months.
 - **IonQ backends:** these reject `reset` and take one circuit per job, so they get an
@@ -296,7 +300,7 @@ transform.
 | Reservoir alone | 0.1205 | 0.1109 |
 | Reservoir values added to HARX's inputs | 0.0999 | 0.1009 |
 
-- **Alone, the dynamics help:** 9% lower error, on all 20 seeds, p = 0.04. A linear regression
+- **Alone, the dynamics help:** 8% lower error, on all 20 seeds, p = 0.04. A linear regression
   on the same seven inputs still does better (0.1082), so the dynamics appear to recover
   information that the encoding discards.
 - **In a hybrid with HARX, they do not:** the gates-off version is at least as good. The gain

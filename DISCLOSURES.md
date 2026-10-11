@@ -50,7 +50,8 @@ No third-party source code is copied into this repository. It depends on these p
 | scikit-learn | Ridge regression in the classical reservoir baseline | BSD-3-Clause |
 | reservoirpy 0.4.2 | Classical reservoir baselines (RC, RCX) | MIT |
 | requests, xlrd | Data download and parsing | Apache-2.0, BSD |
-| matplotlib, pylatexenc | Figures (development only) | Matplotlib license (BSD-style), MIT |
+| matplotlib | Figures, in the repository and in the Qollab run | Matplotlib license (BSD-style) |
+| pylatexenc | Circuit drawings (development only) | MIT |
 | pytest | Tests (development only) | MIT |
 
 ## Data

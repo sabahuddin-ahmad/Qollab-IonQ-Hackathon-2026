@@ -95,6 +95,7 @@ the same month.
 - `month`: `2017-10`, `2017-11` or `2017-12`
 - `all_three_months`: all three months in one job (built-in simulator only)
 - `mid_circuit`: on IonQ backends, also measure the earlier months' qubits mid-circuit
+- `plots`: show figures (default on); text charts when off
 
 On the built-in simulator the circuit has 10 qubits with a reset between months. IonQ backends do
 not accept reset, so they receive an equivalent 24-qubit circuit and noise-matched weights.

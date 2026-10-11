@@ -30,7 +30,8 @@ import pandas as pd
 from src.harness import WIN, iter_folds, load_panel
 from src.qrc.circuit import z_from_probabilities
 from src.qrc.reference import couplings
-from sweep_qrc import cache_path, choose_ridge, load_inputs, sample
+from hybrid_qrc import ridge_fit, rolling
+from sweep_qrc import N_VALIDATION, RIDGES, cache_path, choose_ridge, load_inputs, sample
 
 SEED, TROTTER_STEPS, N_MONTHS = 0, 2, 3
 SHOT_LEVELS = [128, 256, 512, 1024, 4096]
@@ -52,11 +53,22 @@ def frozen_weights(Z: np.ndarray, y_scaled: np.ndarray, j: int, ridge: float) ->
 
 def main() -> None:
     panel, X, target = load_inputs()
-    full, _, _ = load_panel()
+    full, feature_sets, _ = load_panel()
     _, oos_index = iter_folds(full)
     rows = panel.index.get_indexer(full.index)
     oos = full.index.get_indexer(oos_index)
-    y_scaled = target.scale(full["y"].to_numpy())
+    y_log = full["y"].to_numpy()
+    y_scaled = target.scale(y_log)
+    # Hybrid readout: intercept and HARX's 13 inputs (unpenalised) plus the ten reservoir values (ridge), in log space.
+    harx_inputs = np.column_stack([np.ones(len(full)), full[feature_sets["HARX"]].to_numpy()])
+    n_harx = harx_inputs.shape[1]
+    validation = np.arange(oos[0] - N_VALIDATION, oos[0])
+
+    def hybrid_weights(Z: np.ndarray, j: int) -> list[float]:
+        F = np.column_stack([harx_inputs, Z])
+        penalty = lambda k: np.r_[np.zeros(n_harx), np.full(Z.shape[1], k)]
+        best = min(RIDGES, key=lambda k: np.mean((rolling(F, y_log, validation, penalty(k)) - y_log[validation]) ** 2))
+        return ridge_fit(F[max(0, j - WIN) : j], y_log[max(0, j - WIN) : j], penalty(best)).tolist()
 
     path = cache_path(SEED, "gate", 0.0, TROTTER_STEPS)
     if not path.exists():
@@ -88,6 +100,9 @@ def main() -> None:
             "noise_matched_features": Z_noisy[j].tolist(),
             "noise_matched_weights": {str(s): frozen_weights(sampled_noisy[s], y_scaled, j, ridges_noisy[s]).tolist()
                                       for s in SHOT_LEVELS},
+            "harx_inputs": harx_inputs[j].tolist(),  # intercept, then HARX's 13 inputs for this month
+            "hybrid_weights": {str(s): hybrid_weights(sampled[s], j) for s in SHOT_LEVELS},
+            "noise_matched_hybrid_weights": {str(s): hybrid_weights(sampled_noisy[s], j) for s in SHOT_LEVELS},
             "classical_forecasts": {m: float(classical.loc[date, m]) for m in BASELINES},
         })
 
@@ -99,6 +114,33 @@ def main() -> None:
     table = [{"model": m, "inputs": inputs(m), "mse": mse(classical[m].to_numpy()), "trained_parameters": int(efficiency[m])} for m in BASELINES]
     table.append({"model": "QR1, quantum (mean of 20 seeds)", "inputs": "volatility + macro", "mse": float(seeds.mean()), "trained_parameters": 10})
 
+    # Headline numbers for the story main.py prints, read from the committed result files.
+    controls = pd.read_csv(ROOT / "data/qr1_controls.csv").set_index("model")
+    noise = pd.read_csv(ROOT / "data/qr1_noise_shots.csv")
+    noise["shots"] = noise["shots"].astype(str)
+    at = lambda level, shots, protocol: float(noise[(noise.noise == "gate") & (noise.trotter_steps == 2) & (noise.level == level)
+                                                    & (noise.shots == shots) & (noise.protocol == protocol)]["mse_mean"].mean())
+    hybrid = pd.read_csv(ROOT / "data/qr1_hybrid.csv")
+    hybrid_oos = pd.read_csv(ROOT / "data/oos_qr1_hybrid.csv")
+    series = {"QR1, quantum reservoir (seed 0)": qr1["QR1_s0"].to_numpy(), "HARX, linear": classical["HARX"].to_numpy(),
+              "Hybrid: HARX + quantum reservoir (seed 0)": hybrid_oos["augmented_s0"].to_numpy()}
+    history = {"note": "Out-of-sample forecasts, exact simulation, computed locally.",
+               "dates": [d.strftime("%Y-%m") for d in classical.index], "realized": np.round(y, 4).tolist(),
+               "models": {name: {"mse": mse(v), "forecast": np.round(v, 4).tolist()} for name, v in series.items()}}
+    findings = {
+        "qr1_mse": float(seeds.mean()), "qr1_best_seed": float(seeds.min()), "qr1_worst_seed": float(seeds.max()),
+        "harx_mse": mse(classical["HARX"].to_numpy()), "armax_mse": mse(classical["ARMAX"].to_numpy()), "rcx_mse": mse(classical["RCX"].to_numpy()),
+        "gates_off_mse": float(controls.loc["QR1, entangling gates off", "mse"]),
+        "gates_on_mse": float(controls.loc["QR1 as designed, mean of 20 seeds", "mse_seed_mean"]),
+        "gates_p_value": float(controls.loc["QR1 as designed (seed-averaged) vs gates off, alone", "dm_p"]),
+        "hybrid_gates_off_mse": float(controls.loc["HARX + reservoir, entangling gates off (= cos of the 7 inputs)", "mse"]),
+        "hybrid_gates_on_mse": float(controls.loc["HARX + reservoir as designed, mean of 20 seeds", "mse_seed_mean"]),
+        "hybrid_mse": float(hybrid["augmented"].mean()), "hybrid_seeds_beating_harx": int((hybrid["augmented"] < mse(classical["HARX"].to_numpy())).sum()),
+        "hybrid_seeds": int(len(hybrid)),
+        "no_noise_mse": at(0.0, "exact", "consistent"),
+        "noise_1pct_matched_mse": at(0.01, "1024", "consistent"), "noise_1pct_unmatched_mse": at(0.01, "1024", "transfer"),
+    }
+
     demo = {
         "note": "Generated by scripts/make_demo.py. Weights and the table were computed locally (NumPy and Aer), not on Qollab.",
         "coupling_seed": SEED,
@@ -109,6 +151,8 @@ def main() -> None:
         "shot_levels": SHOT_LEVELS,
         "ridge_by_shots": {str(s): ridges[s] for s in SHOT_LEVELS},
         "noise_match_p2": IONQ_MATCH_P2,
+        "findings": findings,
+        "history": history,
         "months": months,
         "table": sorted(table, key=lambda r: (r["inputs"] != "volatility + macro", r["mse"])),  # like for like groups
     }

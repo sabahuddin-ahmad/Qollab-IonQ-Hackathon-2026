@@ -128,3 +128,34 @@ def test_counts_decoding_matches_probabilities(inputs):
     assert np.abs(z_from_counts(counts) - z_from_probabilities(p)).max() < 0.01
     measured = qr1_circuit(lags, J, r=2, finish="measure")
     assert measured.num_clbits == 10 and measured.count_ops()["measure"] == 10
+
+
+def test_text_diagram_matches_the_real_circuit_layout():
+    from src.qrc.features import FEATURES
+    from src.qrc.textplot import FEATURES as NAMES, circuit_diagram
+
+    assert NAMES == FEATURES
+    assert circuit_diagram(False, 2).count("evolve") == 3 and "|0>" in circuit_diagram(False, 2)
+    wide = circuit_diagram(True, 2, mid_circuit=True)
+    assert "|0>" not in wide and wide.count("evolve") == 3
+
+
+def test_figures_build_for_both_layouts():
+    import json
+
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    from src.qrc.plots import circuit_figure, findings_figure, forecast_figure, history_figure, z_figure
+
+    demo = json.load(open("demo/qr1_demo.json"))
+    m = demo["months"][-1]
+    z = np.array(m["ideal_features"])
+    for fig in (circuit_figure(False, 2), circuit_figure(True, 2, mid_circuit=True), findings_figure(demo["findings"]),
+                z_figure(m["date"], [str(q) for q in range(10)], z, z * 0.7, 500, z * 0.68),
+                forecast_figure(m["date"], m["actual_log_rv"], ("a", -3.7), ("b", -3.0), m["classical_forecasts"], -3.9),
+                history_figure(demo["history"], m["date"], {next(iter(demo["history"]["models"])): -3.7})):
+        assert fig.axes
+        plt.close(fig)

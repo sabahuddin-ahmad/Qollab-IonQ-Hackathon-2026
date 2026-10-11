@@ -14,7 +14,7 @@ minutes and uses exact NumPy simulation or saved results.
 | --- | --- |
 | `run_demo_local.py` | Runs `main.py` on a laptop the way Qollab does. `--as-ionq` exercises the 24-qubit path on a noiseless local stand-in, so its forecast is off by design: the weights it uses expect IonQ's noise |
 | `make_demo.py` | Builds `demo/qr1_demo.json`: inputs, frozen readout weights and the benchmark table that `main.py` reads |
-| `make_qollab_zip.py` | Packs the seven files a Qollab run needs into one zip |
+| `make_qollab_zip.py` | Packs the nine files a Qollab run needs into one zip |
 
 ## 1. The claim: data and the model
 

@@ -36,6 +36,8 @@ def main() -> None:
     ap.add_argument("--all-three-months", action="store_true")
     ap.add_argument("--as-ionq", action="store_true")
     ap.add_argument("--mid-circuit", action="store_true")
+    ap.add_argument("--no-plots", action="store_true", help="text charts only")
+    ap.add_argument("--save-figures", default=None, help="directory to save the figures to, since nothing is displayed here")
     args = ap.parse_args()
 
     if args.as_ionq:
@@ -45,11 +47,30 @@ def main() -> None:
 
         backend = BasicSimulator()
 
+    if not args.no_plots:  # stand in for Qollab's figure display: save each shown figure, or just discard it
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+
+        shown = []
+
+        def save_or_discard():
+            for number in plt.get_fignums():
+                shown.append(number)
+                if args.save_figures:
+                    out = pathlib.Path(args.save_figures)
+                    out.mkdir(parents=True, exist_ok=True)
+                    plt.figure(number).savefig(out / f"figure_{len(shown)}.png", dpi=110)
+
+        plt.show = save_or_discard
+
     os.chdir(ROOT)  # main.py reads demo/qr1_demo.json relative to the project root
     sys.path.insert(0, str(ROOT))  # and imports src.* from it, as on Qollab
     scope = {"backend": backend, "__name__": "qollab_main"}
     exec(compile((ROOT / "main.py").read_text(), "main.py", "exec"), scope)
-    scope["main"](shots=args.shots, month=args.month, all_three_months=args.all_three_months, mid_circuit=args.mid_circuit)
+    scope["main"](shots=args.shots, month=args.month, all_three_months=args.all_three_months, mid_circuit=args.mid_circuit,
+                  plots=not args.no_plots)
 
 
 if __name__ == "__main__":
