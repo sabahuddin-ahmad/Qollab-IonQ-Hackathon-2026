@@ -21,6 +21,9 @@ dependencies = [
     "scikit-learn>=1.4",
     # Data pull (Yahoo/French/Shiller/FRED in scripts/pull_data.py).
     "requests>=2.31",
+    # Figure generation in scripts/make_figures.py (local-only: the Qollab
+    # demo ships pre-rendered figures, keep out of Qollab requirements.txt).
+    "matplotlib>=3.8",
     # Shiller ie_data.xls parsing in scripts/pull_data.py (local-only need,
     # keep out of Qollab requirements.txt; the Qollab demo ships a CSV).
     "xlrd==2.0.2",
