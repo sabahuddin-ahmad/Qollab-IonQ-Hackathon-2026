@@ -40,5 +40,5 @@ Line chart on a log scale comparing two readouts at 1024 shots as gate error gro
 
 **ionq_calibration.png**
 
-Per-qubit comparison for one circuit on ten output qubits: ideal values, a local depolarizing model at 1.6% per gate, and IonQ's Forte 1 simulator at 500 shots. IonQ's values are smaller in magnitude than ideal on every qubit and lie close to the local model. Overall IonQ keeps 0.65 of the ideal signal and the model 0.68; the three memory qubits lose the most, keeping about 0.4.
+Three panels, one per forecast month, comparing per-qubit values on ten output qubits: ideal, a local depolarizing model at 1.6% per gate, and IonQ's Forte 1 simulator at 500 shots with shot-noise bars. In every month IonQ's values are smaller in magnitude than ideal and lie close to the local model; the three memory qubits lose the most. 2017-10: IonQ keeps 0.63 of the ideal signal, the model 0.69, largest per-qubit gap 0.078. 2017-11: IonQ keeps 0.66 of the ideal signal, the model 0.68, largest per-qubit gap 0.047. 2017-12: IonQ keeps 0.66 of the ideal signal, the model 0.68, largest per-qubit gap 0.086. Chi-squared of IonQ against the model, summed over the 30 values: 36.2.
 

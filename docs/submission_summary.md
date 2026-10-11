@@ -29,9 +29,12 @@ measuring what it buys you.** Qollab × IonQ Hackathon 2026, theme: Quantum Impa
   scores an MSE of 0.47; trained under the same noise it scores 0.113, against 0.109 with no
   noise at all. The quantum circuit is unchanged; only the ten classical weights are retrained.
 - **Calibrating a noise model from one circuit.** A generic depolarizing model at 1.6% per
-  two-qubit gate reproduces the ten values IonQ's simulator returned, within shot noise, and a
-  second run confirmed it. On IonQ's simulator the forecast error for the demo month fell from
-  +1.15 (noiseless-trained weights) to +0.48 (matched weights).
+  two-qubit gate, set from a single circuit, reproduces what IonQ's simulator returned. Two
+  further months, run afterwards without changing the level, agree as well: across the three
+  months the 30 measured values match the model within shot noise (chi-squared 36), while 1%
+  and 3% are clearly rejected. For the calibration month the forecast error on IonQ's simulator
+  fell from +1.15 (noiseless-trained weights) to +0.48 (matched weights); across the three
+  months the device run added 0.05 to 0.2 to the error of noiseless QR1.
 - **A gates-off control.** Running the same model with the entangling gates removed isolates what
   the quantum dynamics contribute. Alone, they cut the error by 9% (0.1205 to 0.1109, p = 0.04).
   Added to the best linear model, they contribute nothing: the gates-off version scores 0.0999
@@ -48,8 +51,8 @@ measuring what it buys you.** Qollab × IonQ Hackathon 2026, theme: Quantum Impa
 
 - **Runs on Qollab as required:** `main.py`, Qiskit only, one circuit and one job per run, on
   the built-in simulator (10 qubits with reset) and on the IonQ Forte 1 simulator (24 qubits,
-  270 two-qubit gates, no reset, optional mid-circuit measurement). Three IonQ simulator runs
-  are recorded in `data/ionq_runs.json`.
+  270 two-qubit gates, no reset, optional mid-circuit measurement). Five IonQ simulator runs
+  over three forecast months are recorded in `data/ionq_runs.json`.
 - **Three implementations that agree:** an exact NumPy reference, the Qiskit circuit (matches
   the reference to 1e-10) and the 24-qubit no-reset layout (same output distribution). Ten
   acceptance tests cover this.
@@ -121,8 +124,10 @@ Local simulation with a generic depolarizing model, mean of 3 coupling seeds.
 
 ## Limits
 
-- Nothing was run on quantum hardware. The local noise model is generic and was matched to
-  IonQ's simulator on one circuit for one month.
+- Nothing was run on quantum hardware. The local noise model is generic; it was matched to
+  IonQ's simulator on one circuit and checked on two more months, three circuits in all.
+- On those three months QR1's forecast from IonQ's simulator was less accurate than every
+  classical model's. Three months show that the pipeline runs, not how accurate it is.
 - All conclusions rest on 245 test months of one series. Differences of 2 to 3% between the best
   models are not statistically significant.
 - The control experiments were chosen after seeing earlier results, so they explain what we

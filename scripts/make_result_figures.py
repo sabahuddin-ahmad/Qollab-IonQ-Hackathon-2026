@@ -179,34 +179,46 @@ def transfer() -> None:
 
 def ionq_calibration() -> None:
     demo = json.loads((ROOT / "demo/qr1_demo.json").read_text())
-    month = demo["months"][-1]
-    run = [r for r in json.loads((ROOT / "data/ionq_runs.json").read_text())["runs"] if r["shots"] == 500][0]
-    ideal, model, z = (np.array(v) for v in (month["ideal_features"], month["noise_matched_features"], run["measured_z"]))
-    se = np.sqrt((1 - z**2) / run["shots"])
-    kept = lambda v: float(v @ ideal / (ideal @ ideal))
+    runs = [r for r in json.loads((ROOT / "data/ionq_runs.json").read_text())["runs"]
+            if r["shots"] == 500 and "1.6%" in r["readout_weights"]]  # one 500-shot run per month
+    runs.sort(key=lambda r: r["forecast_month"])
+    level = demo["noise_match_p2"]
+    kept = lambda v, ideal: float(v @ ideal / (ideal @ ideal))
     x = np.arange(10)
-    fig, ax = new_figure(f"IonQ's simulator output matches a {demo['noise_match_p2']:.1%} depolarizing model",
-                         f"Measured ⟨Z⟩ on each qubit for the {month['date']} forecast circuit: 24 qubits, 270 two-qubit gates, {run['shots']} shots on Qollab.\n"
-                         f"Signal kept relative to ideal: IonQ {kept(z):.2f}, local model {kept(model):.2f}. One month, one run.")
-    ax.axhline(0, color=MUTED, lw=1)
-    ax.axvline(6.5, color=GRID, lw=1)
-    ax.plot(x, ideal, ls="none", marker="_", ms=22, mew=2, color=MUTED, label="Ideal, no noise")
-    ax.plot(x - 0.13, model, ls="none", color=BLUE, label=f"Local model, {demo['noise_match_p2']:.1%} per gate", **DOT)
-    ax.errorbar(x + 0.13, z, yerr=2 * se, ls="none", color=ORANGE, elinewidth=2, capsize=3.5, capthick=2, zorder=2)
-    ax.plot(x + 0.13, z, ls="none", color=ORANGE, label="IonQ Forte 1 simulator (bars: shot noise, 2 s.e.)", **{**DOT, "marker": "D", "ms": 7})
-    ax.set_xticks(x)
-    ax.set_xticklabels([f"in {q}" for q in range(7)] + [f"mem {q}" for q in range(3)])
-    ax.text(3, -0.93, "input qubits, one market feature each", ha="center", fontsize=8.5, color=INK2)
-    ax.text(8, -0.93, "memory qubits", ha="center", fontsize=8.5, color=INK2)
-    ax.set_ylim(-1, 1)
-    ax.set_xlim(-0.6, 9.6)
-    ax.set_ylabel("⟨Z⟩")
-    fig.subplots_adjust(right=0.96)
-    ax.legend(frameon=False, loc="upper left", fontsize=8.5, bbox_to_anchor=(1.25, -0.03), bbox_transform=ax.transData)
+    fig, axes = plt.subplots(1, len(runs), figsize=(11.8, 5.0), sharey=True)
+    fig.subplots_adjust(left=0.06, right=0.985, top=0.74, bottom=0.2, wspace=0.06)
+    fig.text(0.02, 0.965, f"IonQ's simulator output matches a {level:.1%} depolarizing model in all three months",
+             fontsize=12.5, fontweight="bold", va="top")
+    fig.text(0.02, 0.905, "Measured \u27e8Z\u27e9 on each output qubit of the forecast circuit: 24 qubits, 270 two-qubit gates, 500 shots on Qollab, one run per month.\n"
+             "The noise level was set from the 2017-12 circuit; the other two months were run afterwards without changing it.",
+             fontsize=9, color=INK2, va="top", linespacing=1.35)
+    summary = []
+    for ax, run in zip(axes, runs):
+        month = [m for m in demo["months"] if m["date"] == run["forecast_month"]][0]
+        ideal, model, z = (np.array(v) for v in (month["ideal_features"], month["noise_matched_features"], run["measured_z"]))
+        se = np.sqrt((1 - z**2) / run["shots"])
+        for side in ("top", "right"):
+            ax.spines[side].set_visible(False)
+        ax.grid(axis="y", color=GRID, lw=1); ax.set_axisbelow(True); ax.tick_params(length=0)
+        ax.axhline(0, color=MUTED, lw=1)
+        ax.axvline(6.5, color=GRID, lw=1)
+        ax.plot(x, ideal, ls="none", marker="_", ms=13, mew=2, color=MUTED, label="Ideal, no noise")
+        ax.plot(x - 0.17, model, ls="none", color=BLUE, label=f"Local model, {level:.1%} per gate", **{**DOT, "ms": 7})
+        ax.errorbar(x + 0.17, z, yerr=2 * se, ls="none", color=ORANGE, elinewidth=1.6, capsize=2.5, capthick=1.6, zorder=2)
+        ax.plot(x + 0.17, z, ls="none", color=ORANGE, label="IonQ Forte 1 simulator (bars: shot noise, 2 s.e.)", **{**DOT, "marker": "D", "ms": 6})
+        ax.set_title(f"{run['forecast_month']}   signal kept: IonQ {kept(z, ideal):.2f}, model {kept(model, ideal):.2f}",
+                     loc="left", fontsize=9.5, color=INK, pad=8)
+        ax.set_xticks(x); ax.set_xticklabels([f"in{q}" for q in range(7)] + [f"m{q}" for q in range(3)], fontsize=8)
+        ax.set_xlim(-0.6, 9.6); ax.set_ylim(-1, 1)
+        summary.append((run["forecast_month"], kept(z, ideal), kept(model, ideal), float(np.abs(z - model).max()), float((((z - model) / se) ** 2).sum())))
+    axes[0].set_ylabel("\u27e8Z\u27e9")
+    axes[0].legend(frameon=False, loc="upper left", fontsize=8.5, ncols=3, bbox_to_anchor=(0.0, -0.1))
+    fig.text(0.985, 0.03, "in0 to in6: input qubits, one market feature each.  m0 to m2: memory qubits.", fontsize=8.5, color=INK2, ha="right")
     save(fig, "ionq_calibration.png",
-         f"Per-qubit comparison for one circuit on ten output qubits: ideal values, a local depolarizing model at {demo['noise_match_p2']:.1%} per gate, and IonQ's Forte 1 simulator at {run['shots']} shots. "
-         f"IonQ's values are smaller in magnitude than ideal on every qubit and lie close to the local model. Overall IonQ keeps {kept(z):.2f} of the ideal signal and the model {kept(model):.2f}; "
-         "the three memory qubits lose the most, keeping about 0.4.")
+         f"Three panels, one per forecast month, comparing per-qubit values on ten output qubits: ideal, a local depolarizing model at {level:.1%} per gate, "
+         "and IonQ's Forte 1 simulator at 500 shots with shot-noise bars. In every month IonQ's values are smaller in magnitude than ideal and lie close to the local model; "
+         "the three memory qubits lose the most. " + " ".join(f"{m}: IonQ keeps {a:.2f} of the ideal signal, the model {b:.2f}, largest per-qubit gap {c:.3f}." for m, a, b, c, _ in summary)
+         + f" Chi-squared of IonQ against the model, summed over the {10 * len(summary)} values: {sum(v[4] for v in summary):.1f}.")
 
 
 def actual_vs_predicted() -> None:

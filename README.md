@@ -215,10 +215,20 @@ to 0.47 at 1% and 1.14 at 3%.
 
 ### On IonQ's simulator
 
-One circuit (forecast month 2017-12, 24 qubits, 500 shots) on the IonQ Forte 1
-noise-model simulator kept 0.66 of the ideal signal, and its ten values agree with our
-1.6% depolarizing model within shot noise. One month shows that the circuit runs; it is
-not evidence about accuracy.
+The forecast circuit (24 qubits, 270 two-qubit gates, 500 shots) was run on the IonQ
+Forte 1 noise-model simulator for three months. We set the local noise level, 1.6% per
+two-qubit gate, from the 2017-12 run, then ran 2017-10 and 2017-11 without changing it.
+In all three the simulator kept 0.63 to 0.66 of the ideal signal, against 0.68 to 0.69
+for the model, and the measured values agree with the model within shot noise.
+
+| Forecast month | QR1 on IonQ's simulator, error | QR1 noiseless, error | HARX, error |
+| --- | --- | --- | --- |
+| 2017-10 | +0.65 | +0.45 | +0.28 |
+| 2017-11 | +0.22 | +0.17 | +0.04 |
+| 2017-12 | +0.48 | +0.41 | +0.20 |
+
+Errors are forecast minus realized log volatility. Three months show that the pipeline
+runs and what the device adds to the error; they are not evidence about accuracy.
 
 ![IonQ simulator against the local noise model](docs/figures/ionq_calibration.png)
 

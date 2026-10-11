@@ -7,7 +7,18 @@
       "forecast_month": "2017-12",
       "shots": 100,
       "execution_seconds": 34,
-      "measured_z": [-0.52, 0.22, 0.54, 0.6, -0.6, 0.68, 0.6, 0.3, 0.44, 0.24],
+      "measured_z": [
+        -0.52,
+        0.22,
+        0.54,
+        0.6,
+        -0.6,
+        0.68,
+        0.6,
+        0.3,
+        0.44,
+        0.24
+      ],
       "readout_weights": "trained without noise",
       "forecast_log_rv": -3.0156,
       "realized_log_rv": -4.1606
@@ -18,7 +29,18 @@
       "forecast_month": "2017-12",
       "shots": 500,
       "execution_seconds": 163,
-      "measured_z": [-0.424, 0.316, 0.66, 0.624, -0.544, 0.564, 0.612, 0.232, 0.288, 0.236],
+      "measured_z": [
+        -0.424,
+        0.316,
+        0.66,
+        0.624,
+        -0.544,
+        0.564,
+        0.612,
+        0.232,
+        0.288,
+        0.236
+      ],
       "readout_weights": "trained under 1% depolarizing noise",
       "forecast_log_rv": -3.2684,
       "realized_log_rv": -4.1606
@@ -30,12 +52,83 @@
       "shots": 500,
       "execution_seconds": 161,
       "mid_circuit": true,
-      "measured_z": [-0.496, 0.304, 0.628, 0.64, -0.532, 0.576, 0.608, 0.204, 0.348, 0.292],
-      "mid_circuit_z_month_t_minus_2": [-0.432, 0.408, 0.564, 0.608, -0.504, 0.64, 0.616],
-      "mid_circuit_z_month_t_minus_3": [-0.488, 0.404, 0.628, 0.652, -0.552, 0.584, 0.524],
+      "measured_z": [
+        -0.496,
+        0.304,
+        0.628,
+        0.64,
+        -0.532,
+        0.576,
+        0.608,
+        0.204,
+        0.348,
+        0.292
+      ],
+      "mid_circuit_z_month_t_minus_2": [
+        -0.432,
+        0.408,
+        0.564,
+        0.608,
+        -0.504,
+        0.64,
+        0.616
+      ],
+      "mid_circuit_z_month_t_minus_3": [
+        -0.488,
+        0.404,
+        0.628,
+        0.652,
+        -0.552,
+        0.584,
+        0.524
+      ],
       "readout_weights": "trained under 1.6% depolarizing noise",
       "forecast_log_rv": -3.683,
       "realized_log_rv": -4.1606
+    },
+    {
+      "date": "2026-10-11",
+      "backend": "ionq_simulator (IonQ Forte 1, via Qollab)",
+      "forecast_month": "2017-10",
+      "shots": 500,
+      "execution_seconds": 159,
+      "measured_z": [
+        -0.444,
+        0.304,
+        0.66,
+        0.604,
+        -0.532,
+        0.536,
+        0.556,
+        0.224,
+        0.304,
+        0.252
+      ],
+      "readout_weights": "trained under 1.6% depolarizing noise",
+      "forecast_log_rv": -3.5622,
+      "realized_log_rv": -4.2168
+    },
+    {
+      "date": "2026-10-11",
+      "backend": "ionq_simulator (IonQ Forte 1, via Qollab)",
+      "forecast_month": "2017-11",
+      "shots": 500,
+      "execution_seconds": 160,
+      "measured_z": [
+        -0.472,
+        0.356,
+        0.6,
+        0.676,
+        -0.536,
+        0.592,
+        0.604,
+        0.272,
+        0.268,
+        0.28
+      ],
+      "readout_weights": "trained under 1.6% depolarizing noise",
+      "forecast_log_rv": -3.7554,
+      "realized_log_rv": -3.9742
     }
   ]
 }
