@@ -107,6 +107,7 @@ verified numerically).
 scripts/pull_data.py       monthly panel pull (Yahoo / French / Shiller / FRED)
 scripts/bench_classical.py AR/HAR-family OLS benchmarks + teacher-forced ESN + DM table
 scripts/bench_rc.py        paper-faithful 3-step stateless reservoirpy RC/RCX
+scripts/transpile_qr1.py   QR1 recompiled to {H,RZ,CX} + train/test Big-O (docs/qrc_spec.md 6b)
 data/rv_monthly.csv        monthly panel, 816 rows x 15 columns
 data/oos_classical.csv     out-of-sample predictions incl. reservoir baselines
 src/qrc/                   quantum reservoir implementation (TBD)
