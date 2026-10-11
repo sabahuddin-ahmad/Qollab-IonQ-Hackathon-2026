@@ -142,7 +142,7 @@ published model.
 ### Technical Execution
 
 - **Runs on Qollab.** One circuit and one job per run, on the built-in simulator and on the IonQ
-  Forte 1 simulator (24 qubits, 270 two-qubit gates). Six IonQ simulator runs over three months
+  Forte 1 simulator (24 qubits, 270 two-qubit gates). Seven IonQ simulator runs over three months
   are recorded in `data/ionq_runs.json`.
 - **Three implementations that agree.** An exact NumPy reference, the Qiskit circuit (matches the
   reference to 1e-10) and the 24-qubit layout (same output distribution).

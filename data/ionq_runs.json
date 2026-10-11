@@ -152,6 +152,31 @@
       "readout_weights": "trained under 1.6% depolarizing noise",
       "forecast_log_rv": -3.4832,
       "realized_log_rv": -4.1606
+    },
+    {
+      "date": "2026-10-11",
+      "backend": "ionq_simulator (IonQ Forte 1, via Qollab)",
+      "forecast_month": "2017-11",
+      "shots": 500,
+      "execution_seconds": 164,
+      "repeat_of": "2017-11 at 500 shots with the same weights",
+      "measured_z": [
+        -0.436,
+        0.344,
+        0.496,
+        0.612,
+        -0.496,
+        0.62,
+        0.568,
+        0.284,
+        0.248,
+        0.164
+      ],
+      "readout_weights": "trained under 1.6% depolarizing noise",
+      "forecast_log_rv": -3.5781,
+      "forecast_noiseless_trained_readout": -2.8944,
+      "forecast_hybrid": -3.9066,
+      "realized_log_rv": -3.9742
     }
   ]
 }
