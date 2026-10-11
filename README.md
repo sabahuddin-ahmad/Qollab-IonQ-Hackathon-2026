@@ -9,18 +9,19 @@ point that runs it on IonQ's simulator through Qollab.
 
 **What we found**
 
-- In exact simulation QR1 ranks third of eight models: behind two linear models (HARX,
-  ARMAX), ahead of both classical reservoirs, with the fewest trained weights of the top
-  five (10).
-- QR1 does not beat the best linear model in any regime we tested. The gap to HARX is
-  not statistically significant on 245 months, and QR1 costs far more to run.
-- On a noisy device the readout must be trained under matching noise. A readout trained
-  on a noiseless simulation fails; a noise-matched one keeps most of the accuracy, given
-  about 1,000 shots per circuit.
-- A generic 1.6% depolarizing model reproduces what IonQ's Forte 1 simulator returned
-  for our circuit, within shot noise.
-- Nothing here ran on quantum hardware, and ten qubits are simulated exactly on a laptop
-  in milliseconds. This is not a quantum-advantage claim.
+- **A fair test changes the ranking.** In exact simulation QR1 ranks third of eight models:
+  behind two linear models (HARX, ARMAX), ahead of both classical reservoirs, with the fewest
+  trained weights of the top five (10). The gap to HARX is not statistically significant on
+  245 months.
+- **On a noisy device the readout must be trained under matching noise.** A readout trained on
+  a noiseless simulation fails; a noise-matched one keeps most of the accuracy, given about
+  1,000 shots per circuit. One calibration circuit was enough to match IonQ's Forte 1
+  simulator with a generic 1.6% depolarizing model.
+- **The quantum dynamics help the reservoir alone, not a hybrid.** Switching the entangling
+  gates off makes QR1 9% worse on its own. Added to HARX, the reservoir's benefit comes
+  entirely from its input encoding, a classical transform.
+- **This is not a quantum-advantage claim.** Nothing here ran on quantum hardware, and ten
+  qubits are simulated exactly on a laptop in milliseconds.
 
 See `docs/submission_summary.md` for the summary by judging criterion and
 `DISCLOSURES.md` for prior work, libraries, data sources and AI assistance.
@@ -232,12 +233,35 @@ per added qubit.
 
 ![Scaling with qubits, memory and shots](docs/figures/scaling_qubits.png)
 
+### Where the value comes from
+
+Running the same model with the entangling gates removed isolates what the quantum dynamics
+contribute. With the gates off, each input qubit returns cos(π·x) of its feature, a classical
+transform.
+
+| Model | Entangling gates off | As designed (mean of 20 seeds) |
+| --- | --- | --- |
+| Reservoir alone | 0.1205 | 0.1109 |
+| Reservoir values added to HARX's inputs | 0.0999 | 0.1009 |
+
+- **Alone, the dynamics help:** 9% lower error, on all 20 seeds, p = 0.04. A linear regression
+  on the same seven inputs still does better (0.1082), so the dynamics appear to recover
+  information that the encoding discards.
+- **In a hybrid with HARX, they do not:** the gates-off version is at least as good. The gain
+  over HARX (0.1030) comes from the cosine of two signed inputs, the market return and the
+  reversal factor, which measures the size of last month's move. A plain square does the same
+  (0.1010).
+- The hybrid gains are 2 to 3% and not statistically significant on 245 months.
+
+![Entangling gates off against on](docs/figures/controls.png)
+
 ### What did not help
 
-Each was tested in exact simulation and none improved on QR1: amplitude damping added
-to the evolution, a continuous-stream reservoir whose memory qubits are never reset
-(0.1105 against 0.1109), and reading the discarded input qubits as extra features
-(0.1138 against 0.1109).
+Each was tested in exact simulation and none beat its control: amplitude damping added to
+the evolution, a continuous-stream reservoir whose memory qubits are never reset (0.1105
+against 0.1109), reading the discarded input qubits as extra features (0.1138 against 0.1109),
+and four ways of getting more out of the reservoir in the hybrid (qubit correlators, temporal
+multiplexing, extra measurement bases, Hamiltonian encoding).
 
 All figures, with alt text, are in `docs/figures/`.
 
@@ -263,6 +287,9 @@ scripts/sweep_qrc.py            shots and noise study (simulate, then analyze)
 scripts/noisy_forecasts.py      month-by-month QR1 forecasts under noise
 scripts/stream_qrc.py           experiment: continuous-stream reservoir
 scripts/extra_features_qrc.py   experiment: discarded qubits as extra features
+scripts/hybrid_qrc.py           experiment: HARX plus reservoir values, with a noise check
+scripts/hybrid_variants.py      experiment: four richer reservoir readouts in the hybrid
+scripts/controls_qrc.py         controls: entangling gates off, classical transforms, tests
 scripts/bench_complexity.py     sizes and time per forecast, HARX against QR1
 scripts/bench_scaling.py        simulation time against qubit count
 scripts/transpile_qr1.py        QR1 recompiled to {H,RZ,CX} + train/test Big-O (docs/qrc_spec.md 6b)
