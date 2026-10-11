@@ -114,6 +114,44 @@ Rules for the study:
 
 **If Qollab's simulator does not accept mid-circuit `reset`:** give every lag its own fresh input qubits and never reuse them. That is 7×3 + 3 = 24 qubits, measured only at the end (read ⟨Z⟩ on the three hidden qubits and the seven lag-1 input qubits). It is mathematically identical to the reset version. Sabah to confirm the simulator's qubit limit.
 
+## 6b. Universal-gate cost (H/RZ/CX) and full-run Big-O
+
+`scripts/transpile_qr1.py` recompiles the exact demo circuit
+(`src/qrc/circuit.py:qr1_circuit`) with
+`qiskit.compiler.transpile(basis_gates=["h", "rz", "cx", "reset", "measure"],
+optimization_level=0)` so the Hadamard cost is explicit:
+
+```bash
+.venv/bin/python scripts/transpile_qr1.py [--r 2] [--shots 1024] [--opt 0]
+```
+
+Decomposition at `opt=0` (verified in the script output):
+
+- `1x RXX -> 4x H + 2x CX + 1x RZ`
+- `1x RY -> 2x H + 3x RZ`
+- `1x RZ -> 1x RZ`
+
+Per forecast month (`N=10` qubits, `K=3` lags, `r` Trotter steps, `N_input=7`):
+native `RXX = K*r*N(N-1)/2 = 135*r` (270 at `r=2`, 540 at `r=4`),
+transpiled `CX = 2*RXX`, `H = 4*RXX + 2*K*N_input`, `RZ = RXX + 2*K*r*N + 3*K*N_input`
+(at `r=2`: `540 CX, 1122 H, 453 RZ`; depth `85 -> 365` on the 10-qubit layout,
+`81 -> 353` on the 24-qubit unrolled layout). `opt=1` cancels `H-H` pairs
+(`162 H`, same `CX`/`RZ`) but keeps the same order.
+
+Notations: `S` = shots per circuit, `P = 816` panel rows (`804` in the harness),
+`WIN = 570` rolling window, `F = 245` folds, `d = 10` readout features,
+`M_train = 803` unique window rows, `M_test = 245` OOS months (from
+`src/harness.py:iter_folds`; the script asserts these). Full unique job is
+`804` circuits because test months reappear in later training windows.
+
+| Phase | Quantum | Classical |
+| --- | --- | --- |
+| Train | `O(M_train*S*K*r*N^2)` gate-shots (`CX~4.4e8, H~9.2e8, RZ~3.7e8` at `S=1024, r=2`) | `O(P)` scaling + `O(M_train*2^N*N)` counts-to-`<Z>` + `O(F*WIN*d^2+F*d^3)` ridge fits |
+| Test | `O(M_test*S*K*r*N^2)` gate-shots (`CX~1.4e8, H~2.8e8, RZ~1.1e8` at `S=1024, r=2`) | `O(M_test*2^N*N)` counts-to-`<Z>` + `O(M_test*d)` predict + `O(M_test)` score |
+
+The IonQ native two-qubit gate is `RXX` (Molmer-Sorensen); the `H/CX` form is
+for cost accounting only and must not be submitted to the backend.
+
 ## 7. Acceptance checks before anything is reported
 
 1. Exact reference, alignment: the feature vector for month t does not change when any data from month t onward is altered.

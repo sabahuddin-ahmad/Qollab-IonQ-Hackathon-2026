@@ -1,0 +1,1 @@
+Grid of line charts reproducing Fig. 7: each panel compares the realized volatility of the S&P 500 (black, shown in every panel) with the out-of-sample forecast of one model (Aug 1997-Dec 2017). Models: HARX, ARMAX, AR3, RC. HARX level MSE 0.00037. ARMAX level MSE 0.00038. AR3 level MSE 0.00043. RC level MSE 0.00042.
