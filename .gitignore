@@ -5,3 +5,4 @@ cache/
 *.png
 *.jpg
 *.zip
+.DS_Store

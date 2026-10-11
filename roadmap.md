@@ -1,5 +1,9 @@
 # IonQ Hackathon Roadmap
 
+> **Note.** This is the team's planning document from the first two days of the hackathon. It is kept as a
+> record and is not up to date. For what was built and found, see `README.md` and
+> `docs/submission_summary.md`.
+
 Oct 9, 2026 · @GFX
 
 We rebuild a published quantum reservoir computing result for S&P 500 volatility in Qiskit from open data, correct its classical baselines, and test it under finite shots and noise — entered under the Quantum Impact theme. Submission deadline: Oct 11, 2026, 19:00 ET on Qollab.
