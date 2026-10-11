@@ -1,0 +1,66 @@
+seed,variant,n_features,hybrid_mse,alone_mse
+-1,baseline (10 <Z>),10,0.099862,0.120494
+-1,correlators (10 <Z> + 45 <ZZ>),55,0.104513,0.125444
+-1,correlators only (45 <ZZ>),45,0.104405,0.125415
+-1,multiplex (<Z> at tau/2 and tau),20,0.099976,0.120482
+-1,"bases (<Z>, <X>, <Y>)",30,0.100428,0.103320
+0,baseline (10 <Z>),10,0.102640,0.110377
+0,correlators (10 <Z> + 45 <ZZ>),55,0.138849,0.118416
+0,correlators only (45 <ZZ>),45,0.103888,0.128374
+0,multiplex (<Z> at tau/2 and tau),20,0.100854,0.112111
+0,"bases (<Z>, <X>, <Y>)",30,0.100942,0.105653
+0,hamiltonian encoding (10 <Z>),10,0.102368,0.142902
+1,baseline (10 <Z>),10,0.100771,0.105987
+1,correlators (10 <Z> + 45 <ZZ>),55,0.116850,0.124445
+1,correlators only (45 <ZZ>),45,0.125362,0.123053
+1,multiplex (<Z> at tau/2 and tau),20,0.100786,0.110491
+1,"bases (<Z>, <X>, <Y>)",30,0.101227,0.104868
+1,hamiltonian encoding (10 <Z>),10,0.104344,0.158014
+2,baseline (10 <Z>),10,0.100789,0.108102
+2,correlators (10 <Z> + 45 <ZZ>),55,0.126645,0.122658
+2,correlators only (45 <ZZ>),45,0.123687,0.128209
+2,multiplex (<Z> at tau/2 and tau),20,0.100980,0.109716
+2,"bases (<Z>, <X>, <Y>)",30,0.101224,0.105416
+2,hamiltonian encoding (10 <Z>),10,0.102742,0.149600
+3,baseline (10 <Z>),10,0.100826,0.107238
+3,correlators (10 <Z> + 45 <ZZ>),55,0.112784,0.114031
+3,correlators only (45 <ZZ>),45,0.115572,0.113908
+3,multiplex (<Z> at tau/2 and tau),20,0.100883,0.111541
+3,"bases (<Z>, <X>, <Y>)",30,0.101272,0.105120
+3,hamiltonian encoding (10 <Z>),10,0.102273,0.143530
+4,baseline (10 <Z>),10,0.100869,0.107880
+4,correlators (10 <Z> + 45 <ZZ>),55,0.104447,0.122969
+4,correlators only (45 <ZZ>),45,0.127099,0.118658
+4,multiplex (<Z> at tau/2 and tau),20,0.101003,0.110872
+4,"bases (<Z>, <X>, <Y>)",30,0.101265,0.105965
+4,hamiltonian encoding (10 <Z>),10,0.103586,0.163288
+5,baseline (10 <Z>),10,0.100851,0.106083
+5,correlators (10 <Z> + 45 <ZZ>),55,0.120582,0.126118
+5,correlators only (45 <ZZ>),45,0.104338,0.121351
+5,multiplex (<Z> at tau/2 and tau),20,0.100804,0.108110
+5,"bases (<Z>, <X>, <Y>)",30,0.101286,0.105304
+5,hamiltonian encoding (10 <Z>),10,0.103840,0.159499
+6,baseline (10 <Z>),10,0.100976,0.111041
+6,correlators (10 <Z> + 45 <ZZ>),55,0.129340,0.132554
+6,correlators only (45 <ZZ>),45,0.127062,0.125386
+6,multiplex (<Z> at tau/2 and tau),20,0.101119,0.111481
+6,"bases (<Z>, <X>, <Y>)",30,0.101231,0.104941
+6,hamiltonian encoding (10 <Z>),10,0.103385,0.145309
+7,baseline (10 <Z>),10,0.100868,0.110495
+7,correlators (10 <Z> + 45 <ZZ>),55,0.104531,0.120013
+7,correlators only (45 <ZZ>),45,0.104276,0.120893
+7,multiplex (<Z> at tau/2 and tau),20,0.100774,0.111520
+7,"bases (<Z>, <X>, <Y>)",30,0.101380,0.105496
+7,hamiltonian encoding (10 <Z>),10,0.105671,0.142068
+8,baseline (10 <Z>),10,0.100843,0.108965
+8,correlators (10 <Z> + 45 <ZZ>),55,0.134581,0.118625
+8,correlators only (45 <ZZ>),45,0.132339,0.117846
+8,multiplex (<Z> at tau/2 and tau),20,0.100851,0.110757
+8,"bases (<Z>, <X>, <Y>)",30,0.101232,0.105165
+8,hamiltonian encoding (10 <Z>),10,0.104255,0.164987
+9,baseline (10 <Z>),10,0.100764,0.110649
+9,correlators (10 <Z> + 45 <ZZ>),55,0.115985,0.151948
+9,correlators only (45 <ZZ>),45,0.104012,0.134306
+9,multiplex (<Z> at tau/2 and tau),20,0.100877,0.111294
+9,"bases (<Z>, <X>, <Y>)",30,0.101286,0.105479
+9,hamiltonian encoding (10 <Z>),10,0.102484,0.137187

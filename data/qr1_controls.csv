@@ -1,0 +1,33 @@
+block,model,mse,mse_seed_mean,mse_seed_sd,seeds_beating_gates_off,seeds_beating_harx,mse_other,dm_t,dm_p
+reference,HARX,0.103030,,,,,,,
+alone,"QR1, entangling gates off",0.120543,,,,,,,
+alone,"linear regression, the 7 inputs, last month",0.108199,,,,,,,
+alone,"linear regression, the 7 inputs, 3 months",0.103634,,,,,,,
+alone,"QR1 as designed, mean of 20 seeds",0.109491,0.110932,0.001713,20.000000,,,,
+alone,"QR1, coupling x0.25, mean of 5 seeds",0.115073,,,,,,,
+alone,"QR1, coupling x0.5, mean of 5 seeds",0.111517,,,,,,,
+alone,"QR1, coupling x2, mean of 5 seeds",0.134282,,,,,,,
+hybrid,"HARX + reservoir, entangling gates off (= cos of the 7 inputs)",0.099862,,,,,,,
+hybrid,"HARX + reservoir as designed, mean of 20 seeds",0.100502,0.100902,0.000449,0.000000,20.000000,,,
+hybrid,"HARX + reservoir, coupling x0.25, mean of 5 seeds",0.100003,,,,,,,
+hybrid,"HARX + reservoir, coupling x0.5, mean of 5 seeds",0.100232,,,,,,,
+hybrid,"HARX + reservoir, coupling x2, mean of 5 seeds",0.103865,,,,,,,
+hybrid,"HARX + reservoir memory qubits only, seed 0",0.102935,,,,,,,
+hybrid,HARX + cos of MKT and STR,0.100851,,,,,,,
+hybrid,HARX + MKT^2 and STR^2,0.101002,,,,,,,
+hybrid,HARX + |MKT| and |STR|,0.101639,,,,,,,
+hybrid,HARX + cos of the other five inputs,0.101823,,,,,,,
+hybrid,HARX + the 21 raw reservoir inputs,0.104147,,,,,,,
+hybrid,HARX + cos of RV only,0.103066,,,,,,,
+hybrid,HARX + cos of MKT only,0.101404,,,,,,,
+hybrid,HARX + cos of DP only,0.102925,,,,,,,
+hybrid,HARX + cos of IP only,0.103030,,,,,,,
+hybrid,HARX + cos of RV_q only,0.102763,,,,,,,
+hybrid,HARX + cos of STR only,0.101909,,,,,,,
+hybrid,HARX + cos of DEF only,0.102948,,,,,,,
+tests,"QR1 (bench_qrc, seed-averaged) vs HARX",0.108260,,,,,0.103030,1.159392,0.246296
+tests,"QR1 as designed (seed-averaged) vs gates off, alone",0.109491,,,,,0.120543,-2.077009,0.037801
+tests,hybrid as designed (seed-averaged) vs HARX,0.100502,,,,,0.103030,-1.081411,0.279514
+tests,hybrid as designed (seed-averaged) vs hybrid gates off,0.100502,,,,,0.099862,0.529205,0.596663
+tests,hybrid gates off vs HARX,0.099862,,,,,0.103030,-1.528278,0.126444
+tests,HARX + cos of MKT and STR vs HARX,0.100851,,,,,0.103030,-2.198865,0.027888

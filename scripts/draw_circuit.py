@@ -1,7 +1,8 @@
 """Draw the QR1 circuit for the project page (docs/qrc_spec.md, sections 4 and 6).
 
-Writes two figures to docs/figures/:
+Writes three figures to docs/figures/:
   qr1_circuit.png       the whole circuit for one forecast month, each evolution as one block
+  qr1_circuit_24q.png   the same forecast without reset (24 qubits), the form IonQ backends get
   qr1_trotter_step.png  the gates inside one block: a single second-order Trotter step
 
 Black-and-white style so nothing depends on colour.
@@ -46,6 +47,48 @@ def overview() -> QuantumCircuit:
     return qc
 
 
+def overview_unrolled() -> QuantumCircuit:
+    """The same forecast without reset, as sent to IonQ backends: each month gets its own input qubits."""
+    months = [QuantumRegister(N_INPUT, f"input(t-{k})") for k in range(K_LAGS, 0, -1)]  # oldest first
+    hid = QuantumRegister(N_HIDDEN, "hidden")
+    out = ClassicalRegister(N_QUBITS, "z")
+    qc = QuantumCircuit(*months, hid, out)
+    evolve = Gate("evolve", N_QUBITS, [], label="exp(-i H τ)")
+    for k, inp in zip(range(K_LAGS, 0, -1), months):
+        for q, name in enumerate(FEATURES):
+            qc.ry(Parameter(f"π·{name}(t-{k})"), inp[q])
+        qc.append(evolve, [*inp, *hid])
+        qc.barrier()
+    qc.measure([*months[-1], *hid], out)  # earlier months' input qubits are left unmeasured
+    return qc
+
+
+def overview_stream() -> QuantumCircuit:
+    """The continuous-stream variant (scripts/stream_qrc.py): the hidden qubits are never reset.
+
+    Shown for the last three months of the stream. After each month the input qubits are measured
+    and reset; measuring them does not disturb the hidden qubits' state, so it is the same as
+    discarding them. Not runnable on Qollab's IonQ backend, which rejects reset.
+    """
+    inp, hid = QuantumRegister(N_INPUT, "input"), QuantumRegister(N_HIDDEN, "hidden")
+    mids = [ClassicalRegister(N_INPUT, f"mid(t-{k})") for k in range(K_LAGS, 1, -1)]
+    out = ClassicalRegister(N_QUBITS, "z")
+    qc = QuantumCircuit(inp, hid, *mids, out)
+    qc.append(Gate("memory", N_HIDDEN, [], label="state left by\nall earlier months"), hid)
+    evolve = Gate("evolve", N_QUBITS, [], label="exp(-i H τ)")
+    for i, k in enumerate(range(K_LAGS, 0, -1)):
+        for q, name in enumerate(FEATURES):
+            qc.ry(Parameter(f"π·{name}(t-{k})"), inp[q])
+        qc.append(evolve, [*inp, *hid])
+        qc.barrier()
+        if k > 1:
+            qc.measure(inp, mids[i])
+            qc.reset(inp)
+            qc.barrier()
+    qc.measure([*inp, *hid], out)
+    return qc
+
+
 def trotter_step() -> QuantumCircuit:
     """One second-order Trotter step of exp(-i H τ/r): RZ on all, RXX on all 45 pairs, RZ on all.
 
@@ -70,9 +113,13 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     fig = overview().draw("mpl", style="bw", fold=-1, scale=0.8, plot_barriers=True)
     fig.savefig(OUT / "qr1_circuit.png", dpi=170, bbox_inches="tight", facecolor="white")
+    fig = overview_unrolled().draw("mpl", style="bw", fold=-1, scale=0.7, plot_barriers=True)
+    fig.savefig(OUT / "qr1_circuit_24q.png", dpi=150, bbox_inches="tight", facecolor="white")
+    fig = overview_stream().draw("mpl", style="bw", fold=-1, scale=0.7, plot_barriers=True)
+    fig.savefig(OUT / "qr1_circuit_stream.png", dpi=150, bbox_inches="tight", facecolor="white")
     fig = trotter_step().draw("mpl", style="bw", fold=26, scale=0.7)
     fig.savefig(OUT / "qr1_trotter_step.png", dpi=150, bbox_inches="tight", facecolor="white")
-    print("saved", OUT / "qr1_circuit.png", "and", OUT / "qr1_trotter_step.png")
+    print("saved qr1_circuit.png, qr1_circuit_24q.png and qr1_trotter_step.png in", OUT)
 
 
 if __name__ == "__main__":

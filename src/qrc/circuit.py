@@ -38,7 +38,7 @@ def qr1_circuit(
     tau: float = TAU,
     step_channel=None,
     unrolled: bool = False,
-    finish: Literal["probabilities", "measure", "none"] = "probabilities",
+    finish: Literal["probabilities", "measure", "measure_mid", "none"] = "probabilities",
 ) -> QuantumCircuit:
     """Circuit for one forecast month. ``x_lags`` is (3, 7): scaled features, oldest month first.
 
@@ -46,13 +46,21 @@ def qr1_circuit(
     gives every month its own input qubits instead (24 qubits, no reset, same output distribution).
     ``step_channel`` is an optional one-qubit noise instruction applied after every Trotter step.
     ``finish="probabilities"`` saves the exact outcome distribution (Aer); ``"measure"`` adds
-    measurements into 10 classical bits, bit q holding logical qubit q.
+    measurements into 10 classical bits, bit q holding logical qubit q. ``"measure_mid"`` (unrolled
+    only) also measures each earlier month's input qubits mid-circuit, right after their last gate
+    and before the next month is loaded: 24 classical bits, 0-9 as for ``"measure"``, 10-16 the
+    inputs of month t-2 and 17-23 those of month t-3. No gate ever acts on a measured qubit.
     """
     x_lags = np.asarray(x_lags, dtype=float)
     if x_lags.shape != (K_LAGS, N_INPUT):
         raise ValueError(f"x_lags must be ({K_LAGS}, {N_INPUT}), got {x_lags.shape}")
     hidden = list(range(K_LAGS * N_INPUT, K_LAGS * N_INPUT + N_HIDDEN)) if unrolled else list(range(N_INPUT, N_QUBITS))
     qc = QuantumCircuit(K_LAGS * N_INPUT + N_HIDDEN if unrolled else N_QUBITS)
+    if finish == "measure_mid":
+        if not unrolled:
+            raise ValueError('finish="measure_mid" needs unrolled=True')
+        creg = ClassicalRegister(N_QUBITS + (K_LAGS - 1) * N_INPUT, "z")
+        qc.add_register(creg)
     for k, x in enumerate(x_lags):
         inputs = list(range(k * N_INPUT, (k + 1) * N_INPUT)) if unrolled else list(range(N_INPUT))
         if k > 0 and not unrolled:
@@ -60,6 +68,9 @@ def qr1_circuit(
         for q, value in zip(inputs, x):
             qc.ry(np.pi * value, q)
         _evolve(qc, inputs + hidden, J, r, tau, step_channel)
+        if finish == "measure_mid" and k < K_LAGS - 1:
+            first = N_QUBITS + (K_LAGS - 2 - k) * N_INPUT
+            qc.measure(inputs, creg[first : first + N_INPUT])
     out = inputs + hidden  # logical qubits 0..9 after the last month
     if finish == "probabilities":
         import qiskit_aer  # noqa: F401  (registers QuantumCircuit.save_probabilities)
@@ -69,6 +80,8 @@ def qr1_circuit(
         creg = ClassicalRegister(N_QUBITS, "z")
         qc.add_register(creg)
         qc.measure(out, creg)
+    elif finish == "measure_mid":
+        qc.measure(out, creg[:N_QUBITS])
     return qc
 
 
@@ -106,9 +119,15 @@ def sample_features(p: np.ndarray, shots: int, rng: np.random.Generator) -> np.n
 
 def z_from_counts(counts: dict[str, int]) -> np.ndarray:
     """Features from a backend's counts for a ``finish="measure"`` circuit (bit q is the q-th from the right)."""
+    return z_all_from_counts(counts)[:N_QUBITS]
+
+
+def z_all_from_counts(counts: dict[str, int]) -> np.ndarray:
+    """<Z> for every classical bit, bit 0 first. For ``"measure_mid"``: 10 features, then 7 + 7 mid-circuit values."""
     shots = sum(counts.values())
-    z = np.zeros(N_QUBITS)
+    z = None
     for bits, n in counts.items():
         bits = bits.replace(" ", "")
-        z += n * np.array([1 - 2 * int(bits[-1 - q]) for q in range(N_QUBITS)])
+        signs = n * np.array([1 - 2 * int(b) for b in reversed(bits)])
+        z = signs if z is None else z + signs
     return z / shots
