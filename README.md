@@ -67,10 +67,18 @@ Run the tests with `uv run --with pytest python -m pytest tests -q`.
 
 ## Run it on Qollab
 
-Upload `main.py`, `requirements.txt`, `demo/qr1_demo.json` and the `src/` package as a
-Qollab project, pick a backend and run. Each run builds one forecast circuit, submits it
-as one job, and prints the measured values, the forecast, the realized value and the
-classical forecasts for the same month.
+1. Build the upload: `uv run python scripts/make_qollab_zip.py` writes `qollab_qr1.zip`, the
+   seven files a run needs (`main.py`, `requirements.txt`, `demo/qr1_demo.json` and two
+   modules under `src/qrc/`). The whole repository also fits Qollab's limits if you prefer
+   to upload it as it is.
+2. Create a Qollab project from the zip, with `main.py` at the top level.
+3. Pick a backend in Select QPU, set the fields below and run.
+
+Each run builds one forecast circuit, submits it as one job, and prints three things: the
+ten values measured on the quantum device next to their ideal values, the forecast those
+give next to the classical models' forecasts and the realized value, and the full
+benchmark table. Nothing is trained during the run; `main.py`'s header explains what runs
+where.
 
 | Field | Meaning |
 | --- | --- |
@@ -312,47 +320,19 @@ All figures, with alt text, are in `docs/figures/`.
 ## Layout
 
 ```
-main.py                         Qollab entry point: one circuit, one job, frozen readout
-demo/qr1_demo.json              inputs, frozen weights and tables read by main.py
-requirements.txt                Qollab requirements (Qiskit only)
-src/harness.py                  data panel, rolling folds, OLS models, scoring
-src/qrc/                        QR1: features, exact reference, circuit, noise, readout
-tests/test_qrc.py               acceptance tests for QR1
-docs/qrc_spec.md                QR1 specification, noise models, results
-docs/submission_summary.md      summary by judging criterion
-docs/figures/                   figures and alt text
-DISCLOSURES.md                  prior work, libraries, data, AI assistance
-
-scripts/pull_data.py            monthly panel pull (Yahoo / French / Shiller / FRED)
-scripts/bench_classical.py      AR/HAR-family OLS benchmarks + teacher-forced ESN + DM table
-scripts/bench_rc.py             paper-faithful 3-step stateless reservoirpy RC/RCX
-scripts/bench_qrc.py            QR1 in exact simulation over coupling seeds
-scripts/bench_reduced.py        HARX and ARMAX cut to 10 weights
-scripts/bench_univariate.py     volatility-only comparison, with a volatility-only quantum reservoir
-scripts/bench_windows.py        the main models at training windows from 24 to 570 months
-scripts/bench_daily.py          daily forecasts, with lag and window sweeps
-scripts/bench_daily_lowdata.py  daily low-data control against same-size classical reservoirs
-scripts/sweep_qrc.py            shots and noise study (simulate, then analyze)
-scripts/noisy_forecasts.py      month-by-month QR1 forecasts under noise
-scripts/stream_qrc.py           experiment: continuous-stream reservoir
-scripts/extra_features_qrc.py   experiment: discarded qubits as extra features
-scripts/hybrid_qrc.py           experiment: HARX plus reservoir values, with a noise check
-scripts/hybrid_variants.py      experiment: four richer reservoir readouts in the hybrid
-scripts/controls_qrc.py         controls: entangling gates off, classical transforms, tests
-scripts/bench_complexity.py     sizes and time per forecast, HARX against QR1
-scripts/bench_scaling.py        simulation time against qubit count
-scripts/transpile_qr1.py        QR1 recompiled to {H,RZ,CX} + train/test Big-O (docs/qrc_spec.md 6b)
-scripts/make_demo.py            builds demo/qr1_demo.json
-scripts/run_demo_local.py       runs main.py locally the way Qollab does
-scripts/make_result_figures.py  result figures in docs/figures/
-scripts/make_figures.py         Fig. 7 reproduction (forecast grid)
-scripts/draw_circuit.py         circuit drawings
-
-data/rv_monthly.csv             monthly panel, 816 rows x 15 columns
-data/oos_classical.csv          out-of-sample forecasts, classical models
-data/oos_qr1.csv                out-of-sample forecasts, QR1, 20 seeds
-data/qr1_noise_shots.csv        shots and noise study results
-data/ionq_runs.json             runs on the IonQ Forte 1 simulator through Qollab
+main.py                 Qollab entry point: one circuit, one job, frozen readout
+demo/qr1_demo.json      inputs, frozen weights and tables read by main.py
+requirements.txt        Qollab requirements (Qiskit only)
+src/qrc/                QR1: features, exact reference, circuit, noise models, readout
+src/harness.py          data panel, rolling folds, OLS models, scoring
+tests/test_qrc.py       acceptance tests for QR1
+scripts/                every experiment and figure; scripts/README.md lists them by topic
+data/                   the monthly and daily data, and every result as CSV or JSON
+docs/qrc_spec.md        QR1 specification, noise models, results
+docs/submission_summary.md   summary by judging criterion
+docs/project_page.md, docs/video_script.md   submission text
+docs/figures/           figures and alt text
+DISCLOSURES.md          prior work, libraries, data, AI assistance
 ```
 
 ## License

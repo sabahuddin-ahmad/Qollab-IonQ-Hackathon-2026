@@ -713,38 +713,45 @@
  "table": [
   {
    "model": "HARX",
+   "inputs": "volatility + macro",
    "mse": 0.10302972900489325,
    "trained_parameters": 14
   },
   {
    "model": "ARMAX",
+   "inputs": "volatility + macro",
    "mse": 0.10702709565578639,
    "trained_parameters": 14
   },
   {
-   "model": "QR1 (mean of 20 coupling seeds)",
+   "model": "QR1, quantum (mean of 20 seeds)",
+   "inputs": "volatility + macro",
    "mse": 0.11023378708016798,
    "trained_parameters": 10
   },
   {
+   "model": "RCX",
+   "inputs": "volatility + macro",
+   "mse": 0.12243385193529636,
+   "trained_parameters": 21
+  },
+  {
    "model": "HAR",
+   "inputs": "volatility only",
    "mse": 0.11542694237919113,
    "trained_parameters": 4
   },
   {
    "model": "RC",
+   "inputs": "volatility only",
    "mse": 0.11705917350014136,
    "trained_parameters": 51
   },
   {
    "model": "AR3",
+   "inputs": "volatility only",
    "mse": 0.11798677888019728,
    "trained_parameters": 4
-  },
-  {
-   "model": "RCX",
-   "mse": 0.12243385193529636,
-   "trained_parameters": 21
   }
  ]
 }
