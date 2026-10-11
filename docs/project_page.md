@@ -62,11 +62,12 @@ classical weights under matched noise brings it back to 0.113. The quantum circu
 On IonQ's Forte 1 simulator, one calibration circuit was enough to set the noise level, which then
 matched two further months without adjustment.
 
-**4. What the controls say.** Once a linear model has the same inputs, the entangling dynamics add
-nothing further. The useful ingredient in a hybrid with HARX is the input encoding, a classical
-transform, and adding it to HARX gives the most accurate model in the study (0.0999). The result
-held when we changed the lags, the training window, the data frequency (2,013 daily forecasts) and
-the amount of training data.
+**4. A second hybrid, and what the controls say.** Feeding the reservoir's measured values into
+HARX alongside its own inputs gives 0.1009 against 0.1030 for HARX alone, ahead on all 20 random
+reservoirs. The gain is 2% and not statistically significant, and our controls trace it to the
+input encoding, a classical transform: once a linear model has the same inputs, the entangling
+dynamics add nothing further. The picture held when we changed the lags, the training window, the
+data frequency (2,013 daily forecasts) and the amount of training data.
 
 ## Impact
 
