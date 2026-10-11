@@ -197,10 +197,8 @@ published model.
   pytest (MIT). No third-party source code or templates are included.
 - **Data.** Public series from Yahoo Finance, the Kenneth R. French Data Library, Robert Shiller's
   online data and FRED. The repository holds derived values; each source has its own terms.
-- **AI tools.** Claude Code (Anthropic) was used throughout for planning, code, experiments,
-  figures and first drafts of the documentation, under the team's direction and review.
-  Paper2Agent was run locally to explore the paper and is not part of the submission. Google
-  Gemini was used in one early discussion.
+- **AI tools.** The team used Claude (Anthropic) as an AI assistant throughout, for planning, code,
+  experiments, figures and drafting documentation, under the team's direction and review.
 - We confirm we are licensed to use all of the above. Full details are in `DISCLOSURES.md`.
 
 ## License

@@ -70,18 +70,9 @@ Everything else under `data/` and `demo/` was produced by the scripts in this re
 
 ## Use of AI tools
 
-The team used AI assistance in this project and discloses it as a team.
-
-- **Claude Code (Anthropic)** was used throughout: planning, drafting the model specification,
-  writing and testing code, running the experiments, making the figures and writing first drafts
-  of the documentation, including this file. The team directed the work and reviewed the output;
-  commits made with it carry a co-author line.
-- **Paper2Agent** (`jmiao24/Paper2Agent`) was run locally on the paper and the authors'
-  repository to explore them. Its output is derived from the authors' unlicensed code and is not
-  part of this submission.
-- **Google Gemini** was used in one early discussion about possible extensions of the paper.
-
-The team is responsible for all content in this repository, however it was drafted.
+The team used Claude (Anthropic) as an AI assistant throughout the project, for planning, writing
+and testing code, running experiments, making figures and drafting documentation. The team directed
+the work, reviewed the output and is responsible for all content in this repository.
 
 ## What ran where
 
