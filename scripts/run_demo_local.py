@@ -4,7 +4,7 @@ Default backend is Qiskit's BasicSimulator, the class behind Qollab's built-in s
 ``--as-ionq`` exercises the 24-qubit no-reset path that IonQ backends get, simulated locally
 on Aer under an IonQ-like name. It checks the code path only; it is not IonQ's simulator.
 
-Usage: .venv/bin/python scripts/run_demo_local.py [--shots 1024] [--month 2017-12] [--all-three-months] [--as-ionq]
+Usage: .venv/bin/python scripts/run_demo_local.py [--shots 1024] [--month 2017-12] [--all-three-months] [--as-ionq] [--mid-circuit]
 """
 
 from __future__ import annotations
@@ -35,6 +35,7 @@ def main() -> None:
     ap.add_argument("--month", default="2017-12")
     ap.add_argument("--all-three-months", action="store_true")
     ap.add_argument("--as-ionq", action="store_true")
+    ap.add_argument("--mid-circuit", action="store_true")
     args = ap.parse_args()
 
     if args.as_ionq:
@@ -48,7 +49,7 @@ def main() -> None:
     sys.path.insert(0, str(ROOT))  # and imports src.* from it, as on Qollab
     scope = {"backend": backend, "__name__": "qollab_main"}
     exec(compile((ROOT / "main.py").read_text(), "main.py", "exec"), scope)
-    scope["main"](shots=args.shots, month=args.month, all_three_months=args.all_three_months)
+    scope["main"](shots=args.shots, month=args.month, all_three_months=args.all_three_months, mid_circuit=args.mid_circuit)
 
 
 if __name__ == "__main__":

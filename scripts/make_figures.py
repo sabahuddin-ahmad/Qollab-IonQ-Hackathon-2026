@@ -1,6 +1,11 @@
 """Result figures for the project page, from files committed in data/ and demo/.
 
   benchmark.png          where QR1 ranks among the classical models
+  complexity.png         what HARX and QR1 each need for one forecast (needs scripts/bench_complexity.py)
+  scaling.png            how both models grow with the number of input features (formulas)
+  scaling_qubits.png     QR1's cost against qubits, months of memory and shots (needs scripts/bench_scaling.py)
+  actual_vs_predicted.png  realized against forecast, month by month, for QR1 and HARX
+  actual_vs_predicted_noisy.png  the same for QR1 under gate noise and finite shots (needs scripts/noisy_forecasts.py)
   shots_noise.png        matched training: error against gate noise, one line per shot count
   transfer.png           readout trained under the same noise against one trained without noise
   ionq_calibration.png   IonQ simulator output against our local noise model, per qubit
@@ -203,9 +208,259 @@ def ionq_calibration() -> None:
          "the three memory qubits lose the most, keeping about 0.4.")
 
 
+def actual_vs_predicted() -> None:
+    classical = pd.read_csv(ROOT / "data/oos_classical.csv", parse_dates=["date"]).set_index("date")
+    qr1 = pd.read_csv(ROOT / "data/oos_qr1.csv", parse_dates=["date"]).set_index("date")
+    seeds = qr1[[c for c in qr1.columns if c.startswith("QR1_s")]]
+    y = classical["y_log"]
+    mse = lambda p: float(np.mean((y.to_numpy() - np.asarray(p)) ** 2))
+    panels = ((f"QR1, quantum reservoir, coupling seed 0   (MSE {mse(seeds['QR1_s0']):.4f})", seeds["QR1_s0"], BLUE, "QR1 forecast"),
+              (f"HARX, best linear model   (MSE {mse(classical['HARX']):.4f})", classical["HARX"], ORANGE, "HARX forecast"))
+    fig, axes = plt.subplots(2, 1, figsize=(8.6, 6.6), sharex=True, sharey=True)
+    fig.subplots_adjust(left=0.08, right=0.97, top=0.82, bottom=0.07, hspace=0.22)
+    fig.text(0.02, 0.965, "Both models follow the level of volatility and miss the sudden jumps", fontsize=12.5, fontweight="bold", va="top")
+    fig.text(0.02, 0.918, "Realized and one-month-ahead forecast log volatility of the S&P 500, 245 out-of-sample months, Aug 1997 to Dec 2017.\n"
+             "Blue band: range of the QR1 forecast over 20 coupling seeds. Exact simulation on a local machine.",
+             fontsize=9, color=INK2, va="top", linespacing=1.35)
+    for ax, (title, forecast, colour, label) in zip(axes, panels):
+        for side in ("top", "right"):
+            ax.spines[side].set_visible(False)
+        ax.grid(axis="y", color=GRID, lw=1)
+        ax.set_axisbelow(True)
+        ax.tick_params(length=0)
+        if colour == BLUE:
+            ax.fill_between(seeds.index, seeds.min(axis=1), seeds.max(axis=1), color=BLUE, alpha=0.18, lw=0, label="QR1 range over 20 seeds")
+        ax.plot(y.index, y, color=INK, lw=1.2, label="Realized")
+        ax.plot(forecast.index, forecast, color=colour, lw=1.8, ls=(0, (4, 1.2)), label=label)
+        ax.set_title(title, loc="left", fontsize=9.5, color=INK, pad=6)
+        ax.set_ylabel("log realized volatility")
+        ax.set_ylim(-4.6, -0.9)
+        ax.legend(frameon=False, loc="upper right", fontsize=8.5, ncols=3)
+    worst = (y - seeds["QR1_s0"]).abs().idxmax()
+    save(fig, "actual_vs_predicted.png",
+         "Two stacked time series from 1997 to 2017 sharing one scale. Each shows realized monthly log volatility as a solid line and a one-month-ahead forecast as a dashed line: "
+         f"QR1 with coupling seed 0 on top (MSE {mse(seeds['QR1_s0']):.4f}), HARX below (MSE {mse(classical['HARX']):.4f}). "
+         "Both forecasts track the slow rises and falls of volatility and are smoother than the realized series. "
+         f"Both miss sudden spikes, most visibly in late 2008; the largest QR1 miss is {worst:%B %Y}.")
+
+
+def actual_vs_predicted_noisy() -> None:
+    d = pd.read_csv(ROOT / "data/oos_qr1_noisy.csv", parse_dates=["date"]).set_index("date")
+    y = d["y_log"]
+    mse = lambda c: float(np.mean((y - d[c]) ** 2))
+    panels = (("matched_p0.016_s1024", "1024 shots, readout trained under the same noise", BLUE),
+              ("matched_p0.016_s256", "256 shots, readout trained under the same noise", BLUE),
+              ("noiseless_trained_p0.016_s1024", "1024 shots, readout trained on a noiseless simulation", ORANGE))
+    fig, axes = plt.subplots(3, 1, figsize=(8.6, 8.8), sharex=True, sharey=True)
+    fig.subplots_adjust(left=0.08, right=0.97, top=0.865, bottom=0.05, hspace=0.24)
+    fig.text(0.02, 0.975, "Under IonQ-level noise the forecast holds up only if the readout is trained on it", fontsize=12.5, fontweight="bold", va="top")
+    fig.text(0.02, 0.94, "Realized and one-month-ahead QR1 forecast, 245 months, at 1.6% depolarizing error per two-qubit gate.\n"
+             f"Coupling seed 0, one draw of shots per panel. Local Aer simulation, not IonQ's noise model. Without noise: MSE {mse('exact_p0'):.4f}.",
+             fontsize=9, color=INK2, va="top", linespacing=1.35)
+    for ax, (col, title, colour) in zip(axes, panels):
+        for side in ("top", "right"):
+            ax.spines[side].set_visible(False)
+        ax.grid(axis="y", color=GRID, lw=1)
+        ax.set_axisbelow(True)
+        ax.tick_params(length=0)
+        ax.plot(y.index, y, color=INK, lw=1.2, label="Realized")
+        ax.plot(d.index, d[col], color=colour, lw=1.8, ls=(0, (4, 1.2)), label="QR1 forecast")
+        ax.set_title(f"{title}   (MSE {mse(col):.4f})", loc="left", fontsize=9.5, color=INK, pad=6)
+        ax.set_ylabel("log realized volatility")
+        ax.set_ylim(-5.0, -0.9)
+        ax.legend(frameon=False, loc="upper right", fontsize=8.5, ncols=2)
+    bias = float((d["noiseless_trained_p0.016_s1024"] - y).mean())
+    save(fig, "actual_vs_predicted_noisy.png",
+         "Three stacked time series from 1997 to 2017 sharing one scale, each showing realized log volatility as a solid line and a QR1 forecast as a dashed line, "
+         "all simulated with 1.6 percent gate error. "
+         f"Top: 1024 shots with a noise-matched readout tracks the realized series closely (MSE {mse('matched_p0.016_s1024'):.4f}). "
+         f"Middle: 256 shots with a noise-matched readout tracks it with more month-to-month jitter (MSE {mse('matched_p0.016_s256'):.4f}). "
+         f"Bottom: 1024 shots with a readout trained on a noiseless simulation has the right shape but sits {abs(bias):.2f} {'below' if bias < 0 else 'above'} the realized series on average "
+         f"(MSE {mse('noiseless_trained_p0.016_s1024'):.4f}).")
+
+
+def complexity() -> None:
+    d = pd.read_csv(ROOT / "data/complexity.csv")
+    size = d[d.kind == "size"].pivot(index="item", columns="model", values="value")
+    items = ["trained weights", "input values per forecast", "fixed random parameters", "qubits on IonQ", "two-qubit gates"]
+    notes = {"fixed random parameters": "QR1: the 45 coupling strengths, drawn once and never trained",
+             "qubits on IonQ": "QR1: 10 in the model, 24 without reset", "two-qubit gates": "QR1: per forecast circuit"}
+    times = d[(d.kind == "time") & (d.item != "fit the 10 readout weights")]
+
+    fig, (ax, bx) = plt.subplots(1, 2, figsize=(10.4, 6.0), gridspec_kw={"width_ratios": [1, 1.05]})
+    fig.subplots_adjust(left=0.03, right=0.97, top=0.79, bottom=0.1, wspace=0.42)
+    fig.text(0.02, 0.965, "QR1 trains fewer weights than HARX but needs far more machinery to make a forecast",
+             fontsize=12.5, fontweight="bold", va="top")
+    fig.text(0.02, 0.918, "Left: what each model consists of; every row has its own scale. Right: wall-clock time for one monthly forecast, log scale.\n"
+             "Accuracy for reference (MSE, lower is better): HARX 0.1030, QR1 0.1102 in exact simulation.",
+             fontsize=9, color=INK2, va="top", linespacing=1.35)
+
+    for side in ("top", "right", "bottom", "left"):
+        ax.spines[side].set_visible(False)
+    ax.set_xticks([]); ax.set_yticks([])
+    ax.set_xlim(-0.02, 1.3); ax.set_ylim(len(items) - 0.45, -0.75)
+    for i, item in enumerate(items):
+        top = max(size.loc[item].max(), 1)
+        ax.text(0, i - 0.33, item[0].upper() + item[1:], fontsize=9.5, color=INK, va="center")
+        if item in notes:
+            ax.text(0, i + 0.37, notes[item], fontsize=7.5, color=MUTED, va="center")
+        for model, colour, dy in (("HARX", ORANGE, -0.13), ("QR1", BLUE, 0.1)):
+            v = size.loc[item, model]
+            ax.barh(i + dy, v / top, height=0.17, color=colour, left=0)
+            ax.plot([0, 0], [i + dy - 0.085, i + dy + 0.085], color=colour, lw=2)  # a zero is still a visible mark
+            ax.text(v / top + 0.03, i + dy, f"{v:.0f}", fontsize=9, color=INK2, va="center")
+    ax.barh(-9, 1, color=ORANGE, label="HARX, linear model"); ax.barh(-9, 1, color=BLUE, label="QR1, quantum reservoir")
+    ax.legend(frameon=False, loc="lower left", fontsize=8.5, ncols=2, bbox_to_anchor=(-0.02, 0.97), handlelength=1.2)
+
+    for side in ("top", "right", "left"):
+        bx.spines[side].set_visible(False)
+    bx.grid(axis="x", color=GRID, lw=1); bx.set_axisbelow(True); bx.tick_params(length=0)
+    labels = {"fit and forecast": "HARX: fit and forecast", "one circuit, exact (NumPy)": "QR1: exact simulation, laptop",
+              "one circuit, noisy (Aer density matrix)": "QR1: noisy simulation, laptop",
+              "one circuit, IonQ simulator, 100 shots": "QR1: IonQ simulator, 100 shots",
+              "one circuit, IonQ simulator, 500 shots": "QR1: IonQ simulator, 500 shots"}
+    fmt = lambda v: f"{v * 1000:.2g} ms" if v < 0.1 else f"{v:.2f} s" if v < 10 else f"{v:.0f} s"
+    for i, row in enumerate(times.itertuples()):
+        colour, marker = (ORANGE, "D") if row.model == "HARX" else (BLUE, "o")
+        bx.plot(row.value, i, color=colour, **{**DOT, "marker": marker})
+        bx.text(row.value * 1.9, i, fmt(row.value), fontsize=9, color=INK2, va="center")
+    bx.set_yticks(range(len(times))); bx.set_yticklabels([labels[t] for t in times.item], color=INK)
+    bx.set_ylim(len(times) - 0.5, -0.5)
+    bx.set_xscale("log"); bx.set_xlim(1e-4, 5e3); bx.minorticks_off()
+    bx.set_xticks([1e-3, 1e-1, 1e1, 1e3]); bx.set_xticklabels(["1 ms", "0.1 s", "10 s", "1000 s"])
+    bx.set_xlabel("Time for one forecast (log scale)")
+    t = times.set_index("item")["value"]
+    save(fig, "complexity.png",
+         "Two panels comparing HARX and QR1. Left, paired bars with counts: trained weights 14 for HARX and 10 for QR1; input values per forecast 13 and 21; "
+         "fixed random parameters 0 and 45; qubits on IonQ 0 and 24; two-qubit gates 0 and 270. "
+         f"Right, time for one forecast on a log scale: HARX fit and forecast {fmt(t['fit and forecast'])}; QR1 exact simulation {fmt(t['one circuit, exact (NumPy)'])}; "
+         f"QR1 noisy simulation {fmt(t['one circuit, noisy (Aer density matrix)'])}; QR1 on IonQ's simulator {fmt(t['one circuit, IonQ simulator, 100 shots'])} at 100 shots "
+         f"and {fmt(t['one circuit, IonQ simulator, 500 shots'])} at 500 shots.")
+
+
+def scaling() -> None:
+    """How each model grows with the number of input features d. Formulas, not measurements:
+    QR1 uses one qubit per feature plus 3 memory qubits (n = d + 3), 3 months, 2 Trotter steps."""
+    d = np.arange(1, 41)
+    n = d + 3
+    gates = 3 * 2 * n * (n - 1) / 2
+    ours = 7
+    fig, axes = plt.subplots(1, 3, figsize=(11.6, 5.0))
+    fig.subplots_adjust(left=0.06, right=0.985, top=0.74, bottom=0.13, wspace=0.3)
+    fig.text(0.02, 0.965, "As features are added, QR1's readout stays small but its circuit and its simulation do not",
+             fontsize=12.5, fontweight="bold", va="top")
+    fig.text(0.02, 0.905, "Growth with the number of input features, from the model definitions (not measured). QR1: one qubit per feature plus 3 memory\n"
+             "qubits, 3 months, 2 Trotter steps, all pairs coupled. Dots mark the models as built: QR1 with 7 features, HARX with 13 inputs.",
+             fontsize=9, color=INK2, va="top", linespacing=1.35)
+    for ax in axes:
+        for side in ("top", "right"):
+            ax.spines[side].set_visible(False)
+        ax.grid(axis="y", color=GRID, lw=1); ax.set_axisbelow(True); ax.tick_params(length=0)
+        ax.set_xlim(0, 41); ax.set_xlabel("Input features")
+    a, b, c = axes
+
+    a.set_title("Trained weights: both grow in step", loc="left", fontsize=9.5, color=INK, pad=8)
+    a.plot(d, d + 1, color=ORANGE, lw=2, label="HARX")
+    a.plot(d, d + 3, color=BLUE, lw=2, ls=(0, (4, 1.2)), label="QR1")
+    a.plot(13, 14, color=ORANGE, **{**DOT, "marker": "D"}); a.text(14, 11.6, "HARX: 14", fontsize=8.5, color=INK2)
+    a.plot(ours, 10, color=BLUE, **DOT); a.text(1.2, 12.8, "QR1: 10", fontsize=8.5, color=INK2)
+    a.set_ylim(0, 46); a.set_ylabel("Weights fitted each month")
+    a.legend(frameon=False, loc="upper left", fontsize=8.5)
+
+    b.set_title("Two-qubit gates per circuit: grow with the square", loc="left", fontsize=9.5, color=INK, pad=8)
+    b.plot(d, gates, color=BLUE, lw=2)
+    b.plot(ours, 270, color=BLUE, **DOT); b.text(ours + 2.2, 150, "QR1: 270 gates", fontsize=8.5, color=INK2, va="center")
+    b.text(40, 400, "HARX uses no circuit", fontsize=8.5, color=INK2, ha="right")
+    b.axvline(8.5, color=MUTED, lw=1)
+    b.text(9.2, 5200, "more than 8 features does not fit\nIonQ's 29-qubit simulator\nwithout reset (3 x features + 3)", fontsize=8, color=INK2, va="top", linespacing=1.3)
+    b.set_ylim(0, 5600); b.set_ylabel("RXX gates")
+
+    c.set_title("Memory to simulate it: exponential", loc="left", fontsize=9.5, color=INK, pad=8)
+    c.plot(d, 16.0 * 4.0**n, color=BLUE, lw=2, label="QR1, with noise (density matrix)")
+    c.plot(d, 16.0 * 2.0**n, color=RAMP[0], lw=2, ls=(0, (4, 1.2)), label="QR1, no noise (state vector)")
+    c.plot(d, 8.0 * 570 * (d + 1), color=ORANGE, lw=2, ls=(0, (1, 1.2)), label="HARX (its training table)")
+    c.plot(ours, 16.0 * 4.0**10, color=BLUE, **DOT); c.text(ours - 1, 16.0 * 4.0**10 * 6, "16 MB", fontsize=8.5, color=INK2, ha="right", va="center")
+    c.axhline(16e9, color=MUTED, lw=1); c.text(40, 16e9 * 1.8, "16 GB laptop", fontsize=8, color=MUTED, ha="right")
+    c.set_yscale("log"); c.set_ylim(1e3, 1e25); c.minorticks_off()
+    c.set_yticks([1e3, 1e6, 1e9, 1e12, 1e15, 1e18]); c.set_yticklabels(["1 kB", "1 MB", "1 GB", "1 TB", "1 PB", "1 EB"])
+    c.set_ylabel("Memory (log scale)")
+    c.legend(frameon=False, loc="upper left", fontsize=8)
+    limit_sv = int(d[16.0 * 2.0**n <= 16e9].max()); limit_dm = int(d[16.0 * 4.0**n <= 16e9].max())
+    save(fig, "scaling.png",
+         "Three line charts against the number of input features, from 1 to 40, computed from the model definitions. "
+         "First: trained weights grow linearly for both models, features plus 1 for HARX and features plus 3 for QR1. "
+         "Second: QR1's two-qubit gates per circuit grow with the square of the qubit count, from 270 at 7 features to about 5,400 at 40; HARX uses none. "
+         "A marker shows that more than 8 features does not fit a 29-qubit simulator without reset. "
+         f"Third, log scale: memory to simulate one QR1 circuit grows exponentially, passing a 16 GB laptop after {limit_dm} features with noise and {limit_sv} without, "
+         "while HARX's training table stays under a megabyte. Each added feature quadruples the first and doubles the second.")
+
+
+def scaling_qubits() -> None:
+    """QR1's cost against its three size knobs: qubits, months of memory, shots."""
+    t = pd.read_csv(ROOT / "data/scaling_qubits.csv")
+    g = _gate_grid()
+    g = g[(g.protocol == "consistent") & g.level.isin([0.0, 0.01])].groupby(["level", "shots"])["mse_mean"].mean().unstack("shots")
+    fig, axes = plt.subplots(2, 2, figsize=(10.4, 8.4))
+    fig.subplots_adjust(left=0.08, right=0.97, top=0.845, bottom=0.07, wspace=0.26, hspace=0.42)
+    fig.text(0.02, 0.975, "QR1's cost grows with qubits, memory length and shots; HARX has none of these knobs",
+             fontsize=12.5, fontweight="bold", va="top")
+    fig.text(0.02, 0.94, "QR1 as built: 10 qubits, 3 months of memory, 2 Trotter steps, every pair of qubits coupled. Blue dots mark that design.\n"
+             "Top left and bottom left are formulas. Top right and bottom right are measured on a laptop (Aer), not on IonQ.",
+             fontsize=9, color=INK2, va="top", linespacing=1.35)
+    for ax in axes.flat:
+        for side in ("top", "right"):
+            ax.spines[side].set_visible(False)
+        ax.grid(axis="y", color=GRID, lw=1); ax.set_axisbelow(True); ax.tick_params(length=0)
+    (a, b), (c, e) = axes
+
+    n = np.arange(4, 31)
+    a.set_title("Two-qubit gates per circuit: 3 x qubits x (qubits - 1)", loc="left", fontsize=9.5, color=INK, pad=8)
+    a.plot(n, 3 * n * (n - 1), color=BLUE, lw=2)
+    a.plot(10, 270, color=BLUE, **DOT); a.text(11, 150, "270 gates", fontsize=8.5, color=INK2, va="center")
+    a.text(30, 3 * 30 * 29 + 60, "2,610", fontsize=8.5, color=INK2, ha="right", va="bottom")
+    a.set_xlabel("Qubits in the reservoir"); a.set_ylabel("RXX gates"); a.set_ylim(0, 3000); a.set_xlim(3, 31)
+
+    b.set_title("Time to simulate one noisy circuit: about 5x per added qubit", loc="left", fontsize=9.5, color=INK, pad=8)
+    fit = np.polyfit(t.qubits[t.qubits >= 9], np.log(t.seconds[t.qubits >= 9]), 1)
+    more = np.arange(13, 17)
+    b.plot(more, np.exp(np.polyval(fit, more)), color=MUTED, lw=2, ls=(0, (4, 1.2)), label="Extrapolated from 9 to 13 qubits")
+    b.plot(t.qubits, t.seconds, color=BLUE, lw=2, label="Measured", **DOT)
+    b.text(10.5, 0.53 / 1.3, "10 qubits: 0.53 s", fontsize=8.5, color=INK2, va="top")
+    b.text(12.6, 62 * 1.5, "13 qubits: 62 s", fontsize=8.5, color=INK2, ha="right", va="bottom")
+    hours = float(np.exp(np.polyval(fit, 16))) / 3600
+    b.text(16.3, np.exp(np.polyval(fit, 16)) / 12, f"16 qubits:\nabout {hours:.1f} h", fontsize=8.5, color=INK2, ha="right", va="top", linespacing=1.3)
+    b.set_yscale("log"); b.minorticks_off(); b.set_ylim(5e-4, 5e4)
+    b.set_yticks([1e-3, 1e-1, 1e1, 1e3]); b.set_yticklabels(["1 ms", "0.1 s", "10 s", "1000 s"])
+    b.set_xlabel("Qubits in the reservoir"); b.set_ylabel("Seconds per circuit (log scale)"); b.set_xlim(3.5, 16.5)
+    b.legend(frameon=False, loc="upper left", fontsize=8.5)
+
+    k = np.arange(1, 9)
+    c.set_title("Qubits needed for more months of memory", loc="left", fontsize=9.5, color=INK, pad=8)
+    c.axhline(29, color=MUTED, lw=1); c.text(8, 30.2, "IonQ simulator limit: 29 qubits", fontsize=8, color=MUTED, ha="right")
+    c.plot(k, 7 * k + 3, color=BLUE, lw=2, label="Without reset (what IonQ on Qollab accepts)", **DOT)
+    c.plot(k, np.full(len(k), 10), color=RAMP[0], lw=2, ls=(0, (4, 1.2)), label="With reset between months", **{**DOT, "marker": "s"})
+    c.text(3.25, 21.5, "as built: 24", fontsize=8.5, color=INK2, va="top")
+    c.set_xlabel("Months of memory fed into the circuit"); c.set_ylabel("Qubits"); c.set_ylim(0, 64); c.set_xlim(0.5, 8.5)
+    c.legend(frameon=False, loc="upper left", fontsize=8.5, bbox_to_anchor=(0.0, 0.93))
+
+    e.set_title("Forecast error against shots per circuit", loc="left", fontsize=9.5, color=INK, pad=8)
+    x, cols = np.arange(4), ["256", "1024", "4096", "exact"]
+    e.axhline(0.1030, color=ORANGE, lw=2, ls=(0, (1, 1.2)), label="HARX (no shots needed)")
+    e.plot(x, g.loc[0.0, cols], color=BLUE, lw=2, label="QR1, no gate noise", **DOT)
+    e.plot(x, g.loc[0.01, cols], color=RAMP[3], lw=2, ls=(0, (4, 1.2)), label="QR1, 1% gate error", **{**DOT, "marker": "s"})
+    e.set_xticks(x); e.set_xticklabels(["256", "1024", "4096", "no shot noise"])
+    e.set_xlabel("Shots per circuit (IonQ simulator on Qollab: about 0.3 s per shot)"); e.set_ylabel("MSE"); e.set_ylim(0.1, 0.122); e.set_xlim(-0.3, 3.3)
+    e.legend(frameon=False, loc="upper right", fontsize=8.5)
+    save(fig, "scaling_qubits.png",
+         "Four panels on how the cost of QR1 grows. Top left: two-qubit gates per circuit rise with the square of the qubit count, 270 at 10 qubits and 2,610 at 30. "
+         f"Top right, log scale: measured laptop time to simulate one noisy circuit rises about fivefold per added qubit, 0.53 seconds at 10 qubits and 62 seconds at 13, extrapolated to about {hours:.1f} hours at 16. "
+         "Bottom left: without reset the circuit needs 7 qubits per month of memory plus 3, so 24 for three months and 31 for four, above the 29-qubit IonQ simulator limit; with reset it stays at 10. "
+         f"Bottom right: QR1 forecast error falls as shots increase, from {g.loc[0.0, '256']:.4f} at 256 shots to {g.loc[0.0, 'exact']:.4f} with no shot noise, and never reaches HARX at 0.1030.")
+
+
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    for make in (benchmark, shots_noise, transfer, ionq_calibration):
+    for make in (benchmark, complexity, scaling, scaling_qubits, actual_vs_predicted, actual_vs_predicted_noisy, shots_noise, transfer, ionq_calibration):
         make()
     text = "# Alt text for the figures\n\nGenerated by `scripts/make_figures.py`. Use these as the image descriptions on the project page.\n\n"
     text += "".join(f"**{name}**\n\n{alt}\n\n" for name, alt in ALT.items())
