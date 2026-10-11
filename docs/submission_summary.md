@@ -180,7 +180,7 @@ published model.
   locally, and its output walks through the findings.
 - **Figures** in `docs/figures/`, each stating where its numbers came from, with alt text and a
   colour-blind-safe palette.
-- **Demo video** and `docs/video_script.md`.
+- **Demo video.**
 - **To replicate:** every table and figure has a script, and every result is committed as CSV.
   **To extend:** change the encoding or readout in `src/qrc/`, rerun `scripts/bench_qrc.py` and
   `scripts/controls_qrc.py`. The hybrid experiments are `scripts/hybrid_qrc.py` and
