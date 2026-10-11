@@ -1,10 +1,31 @@
 # Quantum Reservoir Computing for Realized Volatility
 
-A reproduction of Li et al.'s quantum reservoir computing (QRC) benchmark for S&P 500
-monthly realized volatility, built for the Qollab × IonQ Hackathon 2026. The repository
-currently contains the full classical benchmark suite from the paper, replicated in
-Python against freshly pulled open data. The Qiskit quantum reservoir (QR1/QR2) is the
-remaining piece and is tracked below as TBD.
+A reproduction and stress test of Li et al.'s quantum reservoir computing (QRC) benchmark
+for S&P 500 monthly realized volatility, built for the Qollab × IonQ Hackathon 2026
+(theme: Quantum Impact). The repository contains the paper's classical benchmarks
+replicated in Python on freshly pulled open data, the 10-qubit quantum reservoir QR1
+rebuilt in Qiskit, a study of how it holds up under shots and gate noise, and an entry
+point that runs it on IonQ's simulator through Qollab.
+
+**What we found**
+
+- In exact simulation QR1 ranks third of eight models: behind two linear models (HARX,
+  ARMAX), ahead of both classical reservoirs, with the fewest trained weights of the top
+  five (10).
+- QR1 does not beat the best linear model in any regime we tested. The gap to HARX is
+  not statistically significant on 245 months, and QR1 costs far more to run.
+- On a noisy device the readout must be trained under matching noise. A readout trained
+  on a noiseless simulation fails; a noise-matched one keeps most of the accuracy, given
+  about 1,000 shots per circuit.
+- A generic 1.6% depolarizing model reproduces what IonQ's Forte 1 simulator returned
+  for our circuit, within shot noise.
+- Nothing here ran on quantum hardware, and ten qubits are simulated exactly on a laptop
+  in milliseconds. This is not a quantum-advantage claim.
+
+See `docs/submission_summary.md` for the summary by judging criterion and
+`DISCLOSURES.md` for prior work, libraries, data sources and AI assistance.
+
+![Benchmark ranking](docs/figures/benchmark.png)
 
 Reference paper: Qingyu Li, Chiranjib Mukhopadhyay, Abolfazl Bayat, Ali Habibnia,
 "Quantum Reservoir Computing for Realized Volatility Forecasting",
@@ -35,8 +56,34 @@ uv sync
 
 Qiskit is pinned to `>=2.5.2,<3.0.0` to match Qollab's runtime default, and
 `qiskit-aer==0.17.2` matches Qollab's PQCA library pin. The packages `xlrd` and
-`reservoirpy` are local-only (neither has a Pyodide build) and must stay out of any
-Qollab `requirements.txt`; the Qollab demo will run inference-only with frozen weights.
+`reservoirpy` are local-only (neither has a Pyodide build) and must stay out of the
+Qollab `requirements.txt`, which lists Qiskit only; the Qollab demo runs inference-only
+with frozen weights.
+
+Run the tests with `uv run --with pytest python -m pytest tests -q`.
+
+## Run it on Qollab
+
+Upload `main.py`, `requirements.txt`, `demo/qr1_demo.json` and the `src/` package as a
+Qollab project, pick a backend and run. Each run builds one forecast circuit, submits it
+as one job, and prints the measured values, the forecast, the realized value and the
+classical forecasts for the same month.
+
+| Field | Meaning |
+| --- | --- |
+| `shots` | Shots for the circuit (default 1024) |
+| `month` | Forecast month: `2017-10`, `2017-11` or `2017-12` |
+| `all_three_months` | Run all three months in one job (built-in simulator only) |
+| `mid_circuit` | On IonQ backends, measure each earlier month's input qubits mid-circuit |
+
+- **Built-in simulator:** the 10-qubit circuit, with the input qubits reset between months.
+- **IonQ backends:** these reject `reset` and take one circuit per job, so they get an
+  equivalent 24-qubit circuit in which each month has its own input qubits, and readout
+  weights trained under matched noise. A 500-shot run on the IonQ Forte 1 simulator took
+  about 160 seconds; the runs are recorded in `data/ionq_runs.json`.
+
+To reproduce a Qollab run on a laptop:
+`uv run python scripts/run_demo_local.py [--shots 1024] [--month 2017-12] [--as-ionq]`.
 
 ## Data
 
@@ -69,6 +116,10 @@ volatility, and QLIKE as the Patton loss summed over the out-of-sample period on
 absolute log volatility (this differs from the formula printed in the paper and was
 verified numerically).
 
+The table below scores each model the way the authors' code does, to show that their
+numbers are reproduced. It is not the ranking we report: see "Results" for the scores
+with every forecast aligned to the right month.
+
 | Model         | This repo (MSE / QLIKE)  | Paper Table 2   | Assessment                                             |
 | ------------- | ------------------------ | --------------- | ------------------------------------------------------ |
 | AR1           | 0.1302 / 1.7172          | 0.1304 / 1.7279 | Reproduced                                             |
@@ -99,16 +150,138 @@ verified numerically).
    optimistic draw. The quantum comparison in this project will therefore use our own
    RCX run under the identical protocol rather than the printed number.
 
-## Quantum reservoir model (TBD)
+## Quantum reservoir model (QR1)
+
+QR1 uses 10 qubits: seven input qubits, one per market feature (RV, MKT, DP, IP, RV_q,
+STR, DEF), and three memory qubits. For each forecast it loads three months of features,
+oldest first, with `RY(π·x)` rotations, lets all ten qubits evolve under a fully connected
+transverse-field Ising Hamiltonian after each month, discards the input qubits between
+months, and measures ⟨Z⟩ on all ten at the end. A ridge regression with ten weights turns
+those values into the forecast. The couplings are random and never trained.
+`docs/qrc_spec.md` is the full specification.
+
+![QR1 circuit](docs/figures/qr1_circuit.png)
+
+There are three implementations, checked against each other by `tests/test_qrc.py`:
+
+- an exact NumPy reference (`src/qrc/reference.py`), which reproduces the authors' saved
+  forecasts to 1.2e-6 when given their couplings;
+- the Qiskit circuit with second-order Trotter steps (`src/qrc/circuit.py`): 10 qubits,
+  270 two-qubit gates at two steps per month;
+- the 24-qubit layout without reset, which gives the same output distribution.
+
+## Results
+
+Out-of-sample MSE on log realized volatility, 245 months (August 1997 to December 2017),
+every forecast aligned to the month it predicts. Lower is better. QR1 is exact simulation.
+
+| Model | MSE | Trained weights |
+| --- | --- | --- |
+| HARX (linear) | 0.1030 | 14 |
+| ARMAX (linear) | 0.1070 | 14 |
+| **QR1 (quantum reservoir, mean of 20 coupling seeds)** | **0.1102** | **10** |
+| HAR (linear) | 0.1154 | 4 |
+| RC (classical reservoir) | 0.1171 | 51 |
+| AR3 (linear) | 0.1180 | 4 |
+| RCX (classical reservoir) | 0.1224 | 21 |
+| AR1 (linear) | 0.1302 | 2 |
+
+QR1 ranges from 0.1056 to 0.1133 across the 20 seeds; the paper's 0.1051 is at the
+favourable edge. RC and RCX are scored on the forecast averaged over 8 seeds; scored the
+same way, QR1 is 0.1083.
+
+![Realized against forecast](docs/figures/actual_vs_predicted.png)
+
+### Shots and gate noise
+
+Simulated locally on Qiskit Aer with a generic depolarizing model (not IonQ's noise
+model). The readout is trained and tested under the same noise and shot count; mean of
+three coupling seeds.
+
+| Error per two-qubit gate | 256 shots | 1024 shots | 4096 shots | No shot noise |
+| --- | --- | --- | --- | --- |
+| 0 | 0.1168 | 0.1127 | 0.1115 | 0.1091 |
+| 0.4% | 0.1176 | 0.1129 | 0.1116 | 0.1085 |
+| 1% | 0.1191 | 0.1133 | 0.1113 | 0.1082 |
+| 3% | 0.1382 | 0.1171 | 0.1134 | 0.1086 |
+
+With a readout trained on a noiseless simulation instead, the error at 1024 shots rises
+to 0.47 at 1% and 1.14 at 3%.
+
+![Error against gate noise and shots](docs/figures/shots_noise.png)
+
+![Noise-matched against noiseless-trained readout](docs/figures/transfer.png)
+
+### On IonQ's simulator
+
+One circuit (forecast month 2017-12, 24 qubits, 500 shots) on the IonQ Forte 1
+noise-model simulator kept 0.66 of the ideal signal, and its ten values agree with our
+1.6% depolarizing model within shot noise. One month shows that the circuit runs; it is
+not evidence about accuracy.
+
+![IonQ simulator against the local noise model](docs/figures/ionq_calibration.png)
+
+### Cost and scaling
+
+QR1 trains fewer weights than HARX and needs far more to produce a forecast: under a
+millisecond for HARX against minutes on a simulator for QR1. Its gate count grows with
+the square of the number of qubits, and classical simulation time grows about fivefold
+per added qubit.
+
+![Size and time per forecast](docs/figures/complexity.png)
+
+![Scaling with qubits, memory and shots](docs/figures/scaling_qubits.png)
+
+### What did not help
+
+Each was tested in exact simulation and none improved on QR1: amplitude damping added
+to the evolution, a continuous-stream reservoir whose memory qubits are never reset
+(0.1105 against 0.1109), and reading the discarded input qubits as extra features
+(0.1138 against 0.1109).
+
+All figures, with alt text, are in `docs/figures/`.
 
 ## Layout
 
 ```
-scripts/pull_data.py       monthly panel pull (Yahoo / French / Shiller / FRED)
-scripts/bench_classical.py AR/HAR-family OLS benchmarks + teacher-forced ESN + DM table
-scripts/bench_rc.py        paper-faithful 3-step stateless reservoirpy RC/RCX
-scripts/transpile_qr1.py   QR1 recompiled to {H,RZ,CX} + train/test Big-O (docs/qrc_spec.md 6b)
-data/rv_monthly.csv        monthly panel, 816 rows x 15 columns
-data/oos_classical.csv     out-of-sample predictions incl. reservoir baselines
-src/qrc/                   quantum reservoir implementation (TBD)
+main.py                         Qollab entry point: one circuit, one job, frozen readout
+demo/qr1_demo.json              inputs, frozen weights and tables read by main.py
+requirements.txt                Qollab requirements (Qiskit only)
+src/harness.py                  data panel, rolling folds, OLS models, scoring
+src/qrc/                        QR1: features, exact reference, circuit, noise, readout
+tests/test_qrc.py               acceptance tests for QR1
+docs/qrc_spec.md                QR1 specification, noise models, results
+docs/submission_summary.md      summary by judging criterion
+docs/figures/                   figures and alt text
+DISCLOSURES.md                  prior work, libraries, data, AI assistance
+
+scripts/pull_data.py            monthly panel pull (Yahoo / French / Shiller / FRED)
+scripts/bench_classical.py      AR/HAR-family OLS benchmarks + teacher-forced ESN + DM table
+scripts/bench_rc.py             paper-faithful 3-step stateless reservoirpy RC/RCX
+scripts/bench_qrc.py            QR1 in exact simulation over coupling seeds
+scripts/sweep_qrc.py            shots and noise study (simulate, then analyze)
+scripts/noisy_forecasts.py      month-by-month QR1 forecasts under noise
+scripts/stream_qrc.py           experiment: continuous-stream reservoir
+scripts/extra_features_qrc.py   experiment: discarded qubits as extra features
+scripts/bench_complexity.py     sizes and time per forecast, HARX against QR1
+scripts/bench_scaling.py        simulation time against qubit count
+scripts/transpile_qr1.py        QR1 recompiled to {H,RZ,CX} + train/test Big-O (docs/qrc_spec.md 6b)
+scripts/make_demo.py            builds demo/qr1_demo.json
+scripts/run_demo_local.py       runs main.py locally the way Qollab does
+scripts/make_result_figures.py  result figures in docs/figures/
+scripts/make_figures.py         Fig. 7 reproduction (forecast grid)
+scripts/draw_circuit.py         circuit drawings
+
+data/rv_monthly.csv             monthly panel, 816 rows x 15 columns
+data/oos_classical.csv          out-of-sample forecasts, classical models
+data/oos_qr1.csv                out-of-sample forecasts, QR1, 20 seeds
+data/qr1_noise_shots.csv        shots and noise study results
+data/ionq_runs.json             runs on the IonQ Forte 1 simulator through Qollab
 ```
+
+## License
+
+MIT; see `LICENSE`. The license covers the code in this repository, not the underlying
+data sources (see `DISCLOSURES.md`).
+
+This effort is supported by Qollab & IonQ.
