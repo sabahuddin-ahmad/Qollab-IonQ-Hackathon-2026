@@ -105,6 +105,7 @@ weights.
 
 ## Links
 
+- Demo on Qollab: https://qollab.xyz/u/alikarimi/qrc-vol
 - Repository: https://github.com/sabahuddin-ahmad/Qollab-IonQ-Hackathon-2026
 - Summary by judging criterion: `docs/submission_summary.md`
 - Model specification: `docs/qrc_spec.md`

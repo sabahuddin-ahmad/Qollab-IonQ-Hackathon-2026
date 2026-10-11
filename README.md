@@ -3,6 +3,8 @@
 **Team QuanTech** (Sabah Ud Din Ahmad, Ali Karimi, Ali Mahani) · Qollab × IonQ Hackathon 2026 ·
 Theme: Quantum Impact · Built with Qiskit
 
+**Run it on Qollab:** https://qollab.xyz/u/alikarimi/qrc-vol
+
 A reproduction and stress test of Li et al.'s quantum reservoir computing (QRC) benchmark
 for S&P 500 monthly realized volatility, built for the Qollab × IonQ Hackathon 2026
 (theme: Quantum Impact). The repository contains the paper's classical benchmarks
