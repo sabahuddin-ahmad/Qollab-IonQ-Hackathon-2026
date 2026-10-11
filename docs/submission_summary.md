@@ -6,7 +6,7 @@
 
 **Theme:** Quantum Impact
 
-**Demo:** [add link]
+**Demo:** https://qollab.xyz/u/alikarimi/qrc-vol
 
 **GitHub Repository:** https://github.com/sabahuddin-ahmad/Qollab-IonQ-Hackathon-2026
 
