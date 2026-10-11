@@ -1,0 +1,15 @@
+model,weights,mse,macro_variables
+"HARX, all 14 weights",14,0.103030,
+"HARX, 10 weights, subset chosen before the test period",10,0.106491,"MKT_L1, SMB_L1, HML_L1, DP_L1, INF_L1, TB_L1"
+"HARX, 10 weights, median of all 210 subsets",10,0.106278,
+"HARX, 10 weights, best of all 210 subsets (chosen on the test set)",10,0.099973,"MKT_L1, STR_L1, DP_L1, IP_L1, TB_L1, DEF_L1"
+"HARX, 10 weights, worst of all 210 subsets",10,0.120035,"SMB_L1, HML_L1, EP_L1, INF_L1, TB_L1, DEF_L1"
+"HARX, QR1's own variables only",9,0.100964,"MKT, STR, DP, IP, DEF"
+"HARX, no macro variables",4,0.115427,
+"ARMAX, all 14 weights",14,0.107027,
+"ARMAX, 10 weights, subset chosen before the test period",10,0.112128,"MKT_L1, SMB_L1, HML_L1, INF_L1, IP_L1, TB_L1"
+"ARMAX, 10 weights, median of all 210 subsets",10,0.110568,
+"ARMAX, 10 weights, best of all 210 subsets (chosen on the test set)",10,0.103693,"MKT_L1, STR_L1, DP_L1, IP_L1, TB_L1, DEF_L1"
+"ARMAX, 10 weights, worst of all 210 subsets",10,0.123969,"SMB_L1, HML_L1, INF_L1, IP_L1, TB_L1, DEF_L1"
+"ARMAX, QR1's own variables only",9,0.104374,"MKT, STR, DP, IP, DEF"
+"ARMAX, no macro variables",4,0.117987,

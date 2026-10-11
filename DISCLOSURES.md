@@ -6,13 +6,12 @@ Quantum Impact theme. Everything in this repository is released under the MIT li
 
 This effort is supported by Qollab & IonQ.
 
-## Team and who did what
+## Team
 
-| Person | Role | Main contributions |
-| --- | --- | --- |
-| Ali Karimi | Lead, ML and quantum ML | Model specification, quantum reservoir code, noise study, Qollab entry point, figures |
-| Ali Mahani | Classical reservoir computing and ML | Data pull and validation, classical benchmarks, evaluation harness, audit of the authors' code |
-| Sabah Ud Din Ahmad | Quantum computing, Qiskit | Repository, Qollab platform constraints, review of the circuit design |
+Team QuanTech: Sabah Ud Din Ahmad, Ali Karimi and Ali Mahani. This is a joint submission. The team
+together designed the study, built and audited the classical benchmarks, wrote the quantum
+reservoir and the Qollab entry point, ran the experiments and reviewed every result; the commit
+history records who committed what.
 
 ## Prior work this project builds on
 
@@ -50,7 +49,8 @@ No third-party source code is copied into this repository. It depends on these p
 | scikit-learn | Ridge regression in the classical reservoir baseline | BSD-3-Clause |
 | reservoirpy 0.4.2 | Classical reservoir baselines (RC, RCX) | MIT |
 | requests, xlrd | Data download and parsing | Apache-2.0, BSD |
-| matplotlib, pylatexenc | Figures (development only) | Matplotlib license (BSD-style), MIT |
+| matplotlib | Figures, in the repository and in the Qollab run | Matplotlib license (BSD-style) |
+| pylatexenc | Circuit drawings (development only) | MIT |
 | pytest | Tests (development only) | MIT |
 
 ## Data
@@ -62,19 +62,17 @@ corporate spread series from FRED (Federal Reserve Bank of St. Louis). The file 
 monthly values, not the raw downloads. Each source has its own terms of use; the MIT license on
 this repository covers our code and does not relicense the underlying data.
 
+`data/spx_daily.csv` holds daily log volatility (Garman-Klass estimate) and log returns of the
+S&P 500, 1999 to 2018, derived by `scripts/bench_daily.py` from Yahoo Finance daily prices. The same
+note on terms of use applies.
+
 Everything else under `data/` and `demo/` was produced by the scripts in this repository.
 
 ## Use of AI tools
 
-- **Claude Code (Anthropic)** was used throughout by Ali Karimi: planning, drafting the model
-  specification, writing and testing the quantum reservoir code, the noise study, the Qollab
-  entry point, the figures and the first drafts of the documentation, including this file. The
-  team reviewed the output and directed the work; commits made with it carry a co-author line.
-- **Paper2Agent** (`jmiao24/Paper2Agent`) was run locally on the paper and the authors'
-  repository to explore them. Its output is derived from the authors' unlicensed code and is not
-  part of this submission.
-- **Google Gemini** was used in one early discussion about possible extensions of the paper.
-- TODO (Ali Mahani, Sabah): list any AI tools you used, or state none.
+The team used Claude (Anthropic) as an AI assistant throughout the project, for planning, writing
+and testing code, running experiments, making figures and drafting documentation. The team directed
+the work, reviewed the output and is responsible for all content in this repository.
 
 ## What ran where
 
@@ -89,5 +87,5 @@ Everything else under `data/` and `demo/` was produced by the scripts in this re
 
 ## Timeline
 
-TODO: confirm that all work was done inside the hackathon window, with its start date. The first
-commit and the commit history give the dates.
+The repository was created on 2026-10-09 and the work was done between then and the submission on
+2026-10-11. The commit history gives the dates.

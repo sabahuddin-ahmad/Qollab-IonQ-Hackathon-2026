@@ -67,39 +67,56 @@ def benchmark() -> None:
     classical = pd.read_csv(ROOT / "data/oos_classical.csv")
     qr1 = pd.read_csv(ROOT / "data/oos_qr1.csv")
     weights = pd.read_csv(ROOT / "data/efficiency.csv").set_index("model")["n_params"]
+    uni = pd.read_csv(ROOT / "data/univariate.csv").set_index("model")
     y = classical["y_log"].to_numpy()
     mse = lambda p: float(np.mean((y - p) ** 2))
     seeds = np.array([mse(qr1[c].to_numpy()) for c in qr1.columns if c.startswith("QR1_s")])
-    kinds = {"HARX": "linear", "ARMAX": "linear", "HAR": "linear", "AR3": "linear", "AR1": "linear",
-             "RC": "classical reservoir", "RCX": "classical reservoir"}
-    rows = [(m, mse(classical[m].to_numpy()), f"{kinds[m]}, {int(weights[m])} weights") for m in kinds]
-    rows.append(("QR1", float(seeds.mean()), "quantum reservoir, 10 weights"))
-    rows.append(("Persistence", float(np.mean((y[1:] - y[:-1]) ** 2)), "last month's value, 0 weights"))
-    rows.sort(key=lambda r: -r[1])
-
-    fig, ax = new_figure("In exact simulation QR1 ranks third, ahead of both classical reservoirs",
+    qu = uni[uni.kind == "quantum"].sort_values("mse").iloc[0]  # best of the four volatility-only designs
+    c = lambda m, kind: (m, mse(classical[m].to_numpy()), f"{kind}, {int(weights[m])} weights", None)
+    groups = [
+        ("Given macro variables as well as past volatility",
+         [c("HARX", "linear"), c("ARMAX", "linear"), c("RCX", "classical reservoir"),
+          ("QR1", float(seeds.mean()), "quantum reservoir, 10 weights", (seeds.min(), seeds.max()))]),
+        ("Given past volatility only",
+         [c("HAR", "linear"), c("AR3", "linear"), c("AR1", "linear"), c("RC", "classical reservoir"),
+          ("QR-uni", float(qu.mse), f"quantum reservoir, {int(qu.weights)} weights", (qu.mse_best, qu.mse_worst)),
+          ("Persistence", float(uni.loc["Persistence", "mse"]), "last month's value, 0 weights", None)]),
+    ]
+    fig, ax = new_figure("Like for like, the quantum reservoir is mid-table in both groups",
                          "Out-of-sample error (MSE on log realized volatility), 245 months, Aug 1997 to Dec 2017. Lower is better.\n"
-                         "QR1: mean and full range over 20 random coupling seeds, exact simulation on a local machine.", height=5.0)
-    fig.subplots_adjust(left=0.36, right=0.93)
+                         "Quantum reservoirs: mean and range over 20 coupling seeds, exact simulation. QR-uni is the best of four volatility-only\n"
+                         "designs we tried (1 input qubit, 3 memory qubits, 12 months fed in), so its position is if anything flattering.", height=6.5)
+    fig.subplots_adjust(left=0.36, right=0.93, top=0.8)
     ax.grid(axis="y", visible=False)
     ax.grid(axis="x", color=GRID, lw=1)
-    for i, (name, value, _) in enumerate(rows):
-        if name == "QR1":
-            ax.plot([seeds.min(), seeds.max()], [i, i], color=BLUE, lw=2, solid_capstyle="round")
-            ax.plot(value, i, color=BLUE, **DOT)
-        else:
-            ax.plot(value, i, color=MUTED, **DOT)
-        ax.text(value + 0.0012 if name != "QR1" else seeds.max() + 0.0012, i, f"{value:.4f}", va="center", fontsize=9, color=INK2)
-    ax.set_yticks(range(len(rows)))
-    ax.set_yticklabels([f"{name}  ({desc})" for name, _, desc in rows], color=INK)
-    ax.get_yticklabels()[[r[0] for r in rows].index("QR1")].set_fontweight("bold")
+    pos, ticks, labels, bold, found = 0.0, [], [], [], {}
+    for title, rows in groups:
+        ax.text(-0.56, pos, title, transform=ax.get_yaxis_transform(), fontsize=9.5, fontweight="bold", color=INK, va="center")
+        pos += 1
+        for name, value, desc, span in sorted(rows, key=lambda r: r[1]):
+            colour = BLUE if span is not None else MUTED
+            if span is not None:
+                ax.plot(span, [pos, pos], color=BLUE, lw=2, solid_capstyle="round")
+            ax.plot(value, pos, color=colour, **DOT)
+            ax.text((span[1] if span is not None else value) + 0.0012, pos, f"{value:.4f}", va="center", fontsize=9, color=INK2)
+            ticks.append(pos); labels.append(f"{name}  ({desc})"); bold.append(span is not None); found[name] = value
+            pos += 1
+        pos += 0.6
+    ax.set_yticks(ticks)
+    ax.set_yticklabels(labels, color=INK)
+    for label, b in zip(ax.get_yticklabels(), bold):
+        label.set_fontweight("bold" if b else "normal")
+    ax.set_ylim(pos - 1.0, -0.6)
     ax.set_xlim(0.098, 0.15)
     ax.set_xlabel("MSE")
     ax.spines["left"].set_visible(False)
+    f = found
     save(fig, "benchmark.png",
-         "Dot plot of forecast error for nine models in exact, noiseless simulation, best at the top. The linear models HARX 0.1030 and ARMAX 0.1070 are lowest. "
-         f"QR1, the quantum reservoir, is third at {seeds.mean():.4f}, with a range over 20 seeds from {seeds.min():.4f} to {seeds.max():.4f}. "
-         "Below it are HAR 0.1154, the classical reservoir RC 0.1171, AR3 0.1180, the classical reservoir RCX 0.1224, AR1 0.1302 and persistence 0.1433.")
+         "Dot plot of forecast error in exact, noiseless simulation, in two groups, best first within each. "
+         f"Given macro variables as well as past volatility: HARX {f['HARX']:.4f}, ARMAX {f['ARMAX']:.4f}, the quantum reservoir QR1 {f['QR1']:.4f} "
+         f"(range over 20 seeds {seeds.min():.4f} to {seeds.max():.4f}), and the classical reservoir RCX {f['RCX']:.4f}. "
+         f"Given past volatility only: HAR {f['HAR']:.4f}, the classical reservoir RC {f['RC']:.4f}, AR3 {f['AR3']:.4f}, "
+         f"the volatility-only quantum reservoir {f['QR-uni']:.4f} (range {qu.mse_best:.4f} to {qu.mse_worst:.4f}), AR1 {f['AR1']:.4f} and persistence {f['Persistence']:.4f}.")
 
 
 def _gate_grid() -> pd.DataFrame:
@@ -179,34 +196,46 @@ def transfer() -> None:
 
 def ionq_calibration() -> None:
     demo = json.loads((ROOT / "demo/qr1_demo.json").read_text())
-    month = demo["months"][-1]
-    run = [r for r in json.loads((ROOT / "data/ionq_runs.json").read_text())["runs"] if r["shots"] == 500][0]
-    ideal, model, z = (np.array(v) for v in (month["ideal_features"], month["noise_matched_features"], run["measured_z"]))
-    se = np.sqrt((1 - z**2) / run["shots"])
-    kept = lambda v: float(v @ ideal / (ideal @ ideal))
+    runs = [r for r in json.loads((ROOT / "data/ionq_runs.json").read_text())["runs"]
+            if r["shots"] == 500 and "1.6%" in r["readout_weights"]]  # one 500-shot run per month
+    runs.sort(key=lambda r: r["forecast_month"])
+    level = demo["noise_match_p2"]
+    kept = lambda v, ideal: float(v @ ideal / (ideal @ ideal))
     x = np.arange(10)
-    fig, ax = new_figure(f"IonQ's simulator output matches a {demo['noise_match_p2']:.1%} depolarizing model",
-                         f"Measured ⟨Z⟩ on each qubit for the {month['date']} forecast circuit: 24 qubits, 270 two-qubit gates, {run['shots']} shots on Qollab.\n"
-                         f"Signal kept relative to ideal: IonQ {kept(z):.2f}, local model {kept(model):.2f}. One month, one run.")
-    ax.axhline(0, color=MUTED, lw=1)
-    ax.axvline(6.5, color=GRID, lw=1)
-    ax.plot(x, ideal, ls="none", marker="_", ms=22, mew=2, color=MUTED, label="Ideal, no noise")
-    ax.plot(x - 0.13, model, ls="none", color=BLUE, label=f"Local model, {demo['noise_match_p2']:.1%} per gate", **DOT)
-    ax.errorbar(x + 0.13, z, yerr=2 * se, ls="none", color=ORANGE, elinewidth=2, capsize=3.5, capthick=2, zorder=2)
-    ax.plot(x + 0.13, z, ls="none", color=ORANGE, label="IonQ Forte 1 simulator (bars: shot noise, 2 s.e.)", **{**DOT, "marker": "D", "ms": 7})
-    ax.set_xticks(x)
-    ax.set_xticklabels([f"in {q}" for q in range(7)] + [f"mem {q}" for q in range(3)])
-    ax.text(3, -0.93, "input qubits, one market feature each", ha="center", fontsize=8.5, color=INK2)
-    ax.text(8, -0.93, "memory qubits", ha="center", fontsize=8.5, color=INK2)
-    ax.set_ylim(-1, 1)
-    ax.set_xlim(-0.6, 9.6)
-    ax.set_ylabel("⟨Z⟩")
-    fig.subplots_adjust(right=0.96)
-    ax.legend(frameon=False, loc="upper left", fontsize=8.5, bbox_to_anchor=(1.25, -0.03), bbox_transform=ax.transData)
+    fig, axes = plt.subplots(1, len(runs), figsize=(11.8, 5.0), sharey=True)
+    fig.subplots_adjust(left=0.06, right=0.985, top=0.74, bottom=0.2, wspace=0.06)
+    fig.text(0.02, 0.965, f"IonQ's simulator output matches a {level:.1%} depolarizing model in all three months",
+             fontsize=12.5, fontweight="bold", va="top")
+    fig.text(0.02, 0.905, "Measured \u27e8Z\u27e9 on each output qubit of the forecast circuit: 24 qubits, 270 two-qubit gates, 500 shots on Qollab, one run per month.\n"
+             "The noise level was set from the 2017-12 circuit; the other two months were run afterwards without changing it.",
+             fontsize=9, color=INK2, va="top", linespacing=1.35)
+    summary = []
+    for ax, run in zip(axes, runs):
+        month = [m for m in demo["months"] if m["date"] == run["forecast_month"]][0]
+        ideal, model, z = (np.array(v) for v in (month["ideal_features"], month["noise_matched_features"], run["measured_z"]))
+        se = np.sqrt((1 - z**2) / run["shots"])
+        for side in ("top", "right"):
+            ax.spines[side].set_visible(False)
+        ax.grid(axis="y", color=GRID, lw=1); ax.set_axisbelow(True); ax.tick_params(length=0)
+        ax.axhline(0, color=MUTED, lw=1)
+        ax.axvline(6.5, color=GRID, lw=1)
+        ax.plot(x, ideal, ls="none", marker="_", ms=13, mew=2, color=MUTED, label="Ideal, no noise")
+        ax.plot(x - 0.17, model, ls="none", color=BLUE, label=f"Local model, {level:.1%} per gate", **{**DOT, "ms": 7})
+        ax.errorbar(x + 0.17, z, yerr=2 * se, ls="none", color=ORANGE, elinewidth=1.6, capsize=2.5, capthick=1.6, zorder=2)
+        ax.plot(x + 0.17, z, ls="none", color=ORANGE, label="IonQ Forte 1 simulator (bars: shot noise, 2 s.e.)", **{**DOT, "marker": "D", "ms": 6})
+        ax.set_title(f"{run['forecast_month']}   signal kept: IonQ {kept(z, ideal):.2f}, model {kept(model, ideal):.2f}",
+                     loc="left", fontsize=9.5, color=INK, pad=8)
+        ax.set_xticks(x); ax.set_xticklabels([f"in{q}" for q in range(7)] + [f"m{q}" for q in range(3)], fontsize=8)
+        ax.set_xlim(-0.6, 9.6); ax.set_ylim(-1, 1)
+        summary.append((run["forecast_month"], kept(z, ideal), kept(model, ideal), float(np.abs(z - model).max()), float((((z - model) / se) ** 2).sum())))
+    axes[0].set_ylabel("\u27e8Z\u27e9")
+    axes[0].legend(frameon=False, loc="upper left", fontsize=8.5, ncols=3, bbox_to_anchor=(0.0, -0.1))
+    fig.text(0.985, 0.03, "in0 to in6: input qubits, one market feature each.  m0 to m2: memory qubits.", fontsize=8.5, color=INK2, ha="right")
     save(fig, "ionq_calibration.png",
-         f"Per-qubit comparison for one circuit on ten output qubits: ideal values, a local depolarizing model at {demo['noise_match_p2']:.1%} per gate, and IonQ's Forte 1 simulator at {run['shots']} shots. "
-         f"IonQ's values are smaller in magnitude than ideal on every qubit and lie close to the local model. Overall IonQ keeps {kept(z):.2f} of the ideal signal and the model {kept(model):.2f}; "
-         "the three memory qubits lose the most, keeping about 0.4.")
+         f"Three panels, one per forecast month, comparing per-qubit values on ten output qubits: ideal, a local depolarizing model at {level:.1%} per gate, "
+         "and IonQ's Forte 1 simulator at 500 shots with shot-noise bars. In every month IonQ's values are smaller in magnitude than ideal and lie close to the local model; "
+         "the three memory qubits lose the most. " + " ".join(f"{m}: IonQ keeps {a:.2f} of the ideal signal, the model {b:.2f}, largest per-qubit gap {c:.3f}." for m, a, b, c, _ in summary)
+         + f" Chi-squared of IonQ against the model, summed over the {10 * len(summary)} values: {sum(v[4] for v in summary):.1f}.")
 
 
 def actual_vs_predicted() -> None:
