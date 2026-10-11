@@ -360,7 +360,7 @@ scripts/                every experiment and figure; scripts/README.md lists the
 data/                   the monthly and daily data, and every result as CSV or JSON
 docs/qrc_spec.md        QR1 specification, noise models, results
 docs/submission_summary.md   summary by judging criterion
-docs/project_page.md, docs/video_script.md   submission text
+docs/project_page.md    text for the Qollab project page
 docs/figures/           figures and alt text
 DISCLOSURES.md          prior work, libraries, data, AI assistance
 ```
