@@ -1,0 +1,10 @@
+model,kind,weights,mse,note,mse_sd,mse_best,mse_worst,mse_seed_averaged,mse_gates_off,weights_gates_off,seeds_beating_gates_off,seeds_beating_har,seeds_beating_rc,dm_p_vs_har
+AR1,classical,2,0.130156,,,,,,,,,,,
+AR3,classical,4,0.117987,univariate ARMAX,,,,,,,,,,
+HAR,classical,4,0.115427,univariate HARX,,,,,,,,,,
+RC,classical,51,0.117059,"classical reservoir, forecast averaged over 8 seeds",,,,,,,,,,
+Persistence,classical,0,0.142813,last month's value,,,,,,,,,,
+"Quantum reservoir A: 1 input + 3 memory, 3 months",quantum,5,0.124943,4 qubits,0.001020,0.122738,0.126479,0.124353,0.129729,2.000000,20.000000,0.000000,0.000000,0.049915
+"Quantum reservoir B: 1 input + 3 memory, 12 months",quantum,5,0.118401,4 qubits,0.000368,0.117873,0.119156,0.118143,0.129729,2.000000,20.000000,0.000000,0.000000,0.274812
+"Quantum reservoir C: 3 inputs + 3 memory, 3 months",quantum,7,0.123796,6 qubits,0.001506,0.118411,0.125332,0.123378,0.115686,4.000000,0.000000,0.000000,0.000000,0.109667
+"Quantum reservoir D: 3 inputs + 7 memory, 3 months",quantum,11,0.126707,10 qubits,0.004181,0.114169,0.130825,0.125644,0.115686,4.000000,2.000000,1.000000,2.000000,0.159525

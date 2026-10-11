@@ -1,0 +1,11 @@
+model,kind,weights,mse_ols,mse,mse_sd,mse_best,mse_worst,mse_seed_averaged,mse_gates_off,seeds_beating_gates_off,compared_with,mse_compared,seeds_beating_it,dm_t,dm_p
+AR1,classical,2,0.209280,0.209280,,,,,,,,,,,
+AR5,classical,6,0.177251,0.177251,,,,,,,,,,,
+AR22,classical,23,0.175175,0.175175,,,,,,,,,,,
+HAR,classical,4,0.174929,0.174929,,,,,,,,,,,
+HAR + return (leverage),classical,6,0.164515,0.164515,,,,,,,,,,,
+Persistence,classical,0,,0.260114,,,,,,,,,,,
+"Q1: 1 input + 3 memory, 5 days",quantum,5,,0.178771,0.000600,0.177335,0.179754,0.177890,0.208207,20.000000,HAR,0.174929,0.000000,2.117869,0.034186
+"Q2: 1 input + 3 memory, 22 days",quantum,5,,0.178858,0.001159,0.176674,0.180656,0.177971,0.208207,20.000000,HAR,0.174929,0.000000,2.366394,0.017962
+"Q3: 3 inputs (HAR's) + 3 memory, 3 days",quantum,7,,0.175992,0.000759,0.174924,0.177157,0.175515,0.178501,20.000000,HAR,0.174929,1.000000,0.464871,0.642024
+"Q4: 2 inputs (vol, return) + 3 memory, 22 days",quantum,6,,0.180532,0.004744,0.175596,0.193075,0.177427,0.204469,20.000000,HAR + return (leverage),0.164515,0.000000,6.115003,0.000000

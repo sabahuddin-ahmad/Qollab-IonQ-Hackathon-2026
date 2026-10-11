@@ -62,6 +62,10 @@ corporate spread series from FRED (Federal Reserve Bank of St. Louis). The file 
 monthly values, not the raw downloads. Each source has its own terms of use; the MIT license on
 this repository covers our code and does not relicense the underlying data.
 
+`data/spx_daily.csv` holds daily log volatility (Garman-Klass estimate) and log returns of the
+S&P 500, 1999 to 2018, derived by `scripts/bench_daily.py` from Yahoo Finance daily prices. The same
+note on terms of use applies.
+
 Everything else under `data/` and `demo/` was produced by the scripts in this repository.
 
 ## Use of AI tools

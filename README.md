@@ -9,10 +9,12 @@ point that runs it on IonQ's simulator through Qollab.
 
 **What we found**
 
-- **A fair test changes the ranking.** In exact simulation QR1 ranks third of eight models:
-  behind two linear models (HARX, ARMAX), ahead of both classical reservoirs, with the fewest
-  trained weights of the top five (10). The gap to HARX is not statistically significant on
-  245 months.
+- **A fair test changes the ranking.** QR1 is given macro variables as well as past
+  volatility. Among the four models with those inputs it ranks third in exact simulation:
+  behind two linear models (HARX, ARMAX), ahead of the classical reservoir RCX, with the
+  fewest trained weights (10). The gap to HARX is not statistically significant on 245
+  months. Given past volatility only, a quantum reservoir trails HAR and the classical
+  reservoir.
 - **On a noisy device the readout must be trained under matching noise.** A readout trained on
   a noiseless simulation fails; a noise-matched one keeps most of the accuracy, given about
   1,000 shots per circuit. One calibration circuit was enough to match IonQ's Forte 1
@@ -176,22 +178,54 @@ There are three implementations, checked against each other by `tests/test_qrc.p
 Out-of-sample MSE on log realized volatility, 245 months (August 1997 to December 2017),
 every forecast aligned to the month it predicts. Lower is better. QR1 is exact simulation.
 
-| Model | MSE | Trained weights |
-| --- | --- | --- |
-| HARX (linear) | 0.1030 | 14 |
-| ARMAX (linear) | 0.1070 | 14 |
-| **QR1 (quantum reservoir, mean of 20 coupling seeds)** | **0.1102** | **10** |
-| HAR (linear) | 0.1154 | 4 |
-| RC (classical reservoir) | 0.1171 | 51 |
-| AR3 (linear) | 0.1180 | 4 |
-| RCX (classical reservoir) | 0.1224 | 21 |
-| AR1 (linear) | 0.1302 | 2 |
+Models are grouped by what they are given, because macro variables are worth a lot here
+(they take HAR from 0.1154 to 0.1030). Comparisons are like for like only within a group.
+
+| Model | Inputs | MSE | Trained weights |
+| --- | --- | --- | --- |
+| HARX (linear) | volatility + macro | 0.1030 | 14 |
+| ARMAX (linear) | volatility + macro | 0.1070 | 14 |
+| **QR1 (quantum reservoir, mean of 20 coupling seeds)** | volatility + macro | **0.1102** | **10** |
+| RCX (classical reservoir) | volatility + macro | 0.1224 | 21 |
+| HAR (linear) | volatility only | 0.1154 | 4 |
+| RC (classical reservoir) | volatility only | 0.1171 | 51 |
+| AR3 (linear) | volatility only | 0.1180 | 4 |
+| **QR-uni (quantum reservoir, mean of 20 coupling seeds)** | volatility only | **0.1184** | **5** |
+| AR1 (linear) | volatility only | 0.1302 | 2 |
 
 QR1 ranges from 0.1056 to 0.1133 across the 20 seeds; the paper's 0.1051 is at the
 favourable edge. RC and RCX are scored on the forecast averaged over 8 seeds; scored the
 same way, QR1 is 0.1083.
 
+**At equal size.** HARX and ARMAX cut to 10 weights (six of their ten macro variables, the
+subset chosen on months before the test period) score 0.1065 and 0.1121, so at equal
+weight count QR1 is level with ARMAX and closer to HARX. Restricted to the five macro
+variables QR1 itself uses (9 weights), they score 0.1010 and 0.1044: with the same
+information the linear models are more accurate (`scripts/bench_reduced.py`).
+
+**Volatility only.** Without macro variables HARX is HAR and ARMAX is AR3. QR-uni is QR1's
+reservoir fed past volatility alone; we tried four designs and report the best (1 input
+qubit, 3 memory qubits, 12 months fed in). It matches AR3 and trails HAR and the classical
+reservoir RC; no seed of any design beat HAR except one seed of the 10-qubit design. Its
+entangling dynamics do help here (0.1297 with the gates off), by carrying memory across
+months (`scripts/bench_univariate.py`).
+
 ![Realized against forecast](docs/figures/actual_vs_predicted.png)
+
+### Robustness checks
+
+Each asks whether the ranking changes in a setting that might favour the reservoir. None
+does in a way that persists.
+
+| Check | Result | Script |
+| --- | --- | --- |
+| Same lags on both sides (monthly, 1 to 12 lags) | An autoregression is ahead at every lag count; the reservoir gets within 2% of 12 lags with 5 weights instead of 13 | `bench_univariate.py --lags` |
+| Shorter training windows (monthly, 24 to 240 months) | Plain least squares collapses, but a ridge-tuned HARX beats QR1 from 36 to 120 months; QR1 is 2% ahead only at 24 months and level at 240 | `bench_windows.py` |
+| Daily forecasts (2,013 test days, 2010 to 2017) | HAR 0.1749, best reservoir 0.1760; HAR with yesterday's return 0.1645. The reservoir cannot use the return's sign | `bench_daily.py` |
+| Little history and little data (daily, 125 to 250 training days, 1 to 5 days fed in) | A 4-qubit reservoir is within 2% of an autoregression and a same-size classical reservoir; the one significant edge (1%) disappears at 6 and 8 qubits | `bench_daily_lowdata.py` |
+
+The daily data is the S&P 500 from Yahoo Finance, 2000 to 2017, with daily volatility from
+the Garman-Klass range estimator (`data/spx_daily.csv`).
 
 ### Shots and gate noise
 
@@ -293,6 +327,11 @@ scripts/pull_data.py            monthly panel pull (Yahoo / French / Shiller / F
 scripts/bench_classical.py      AR/HAR-family OLS benchmarks + teacher-forced ESN + DM table
 scripts/bench_rc.py             paper-faithful 3-step stateless reservoirpy RC/RCX
 scripts/bench_qrc.py            QR1 in exact simulation over coupling seeds
+scripts/bench_reduced.py        HARX and ARMAX cut to 10 weights
+scripts/bench_univariate.py     volatility-only comparison, with a volatility-only quantum reservoir
+scripts/bench_windows.py        the main models at training windows from 24 to 570 months
+scripts/bench_daily.py          daily forecasts, with lag and window sweeps
+scripts/bench_daily_lowdata.py  daily low-data control against same-size classical reservoirs
 scripts/sweep_qrc.py            shots and noise study (simulate, then analyze)
 scripts/noisy_forecasts.py      month-by-month QR1 forecasts under noise
 scripts/stream_qrc.py           experiment: continuous-stream reservoir

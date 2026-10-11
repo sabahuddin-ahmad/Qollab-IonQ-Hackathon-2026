@@ -8,9 +8,10 @@ measuring what it buys you.** Qollab × IonQ Hackathon 2026, theme: Quantum Impa
 1. **The claim we tested.** Li et al. (arXiv:2505.13933) report that a 10-qubit quantum
    reservoir, QR1, forecasts S&P 500 monthly volatility better than classical models. We rebuilt
    the data, the baselines and the model from scratch in Qiskit.
-2. **What a fair test shows.** With every forecast scored against the right month and 20 random
-   reservoirs instead of one, QR1 ranks third of eight: behind two linear models, ahead of both
-   classical reservoirs, with the fewest trained weights of the top five.
+2. **What a fair test shows.** With every forecast scored against the right month, 20 random
+   reservoirs instead of one, and models compared only with others given the same inputs, QR1
+   ranks third of the four models that use macro variables: behind two linear models, ahead of
+   the classical reservoir, with the fewest trained weights.
 3. **What happens on a noisy device.** We ran QR1 on IonQ's Forte 1 simulator through Qollab. A
    readout trained on a noiseless simulation fails under device noise. Training the same ten
    weights under matching noise restores the accuracy, and one calibration circuit is enough to
@@ -79,7 +80,8 @@ measuring what it buys you.** Qollab × IonQ Hackathon 2026, theme: Quantum Impa
   agrees with recent theory that reset-based reservoirs draw their nonlinearity from the
   encoding (arXiv:2607.12035).
 - **An honest account of the cost.** QR1 is statistically indistinguishable from the best linear
-  model (Diebold-Mariano p = 0.25) and better than classical reservoirs, at minutes per forecast
+  model (Diebold-Mariano p = 0.25) and better than the classical reservoir given the same
+  inputs, at minutes per forecast
   on a simulator against under a millisecond. Its gate count grows with the square of the qubit
   count.
 - **A by-product for the classical side.** The reservoir's encoding pointed to a missing term in
@@ -102,17 +104,30 @@ measuring what it buys you.** Qollab × IonQ Hackathon 2026, theme: Quantum Impa
 
 ## Results at a glance
 
-| Model | MSE, 245 months | Trained weights |
-| --- | --- | --- |
-| HARX (linear) | 0.1030 | 14 |
-| ARMAX (linear) | 0.1070 | 14 |
-| **QR1 (quantum reservoir, mean of 20 seeds)** | **0.1102** | **10** |
-| HAR (linear) | 0.1154 | 4 |
-| RC (classical reservoir) | 0.1171 | 51 |
-| AR3 (linear) | 0.1180 | 4 |
-| RCX (classical reservoir) | 0.1224 | 21 |
+| Model | Inputs | MSE, 245 months | Trained weights |
+| --- | --- | --- | --- |
+| HARX (linear) | volatility + macro | 0.1030 | 14 |
+| ARMAX (linear) | volatility + macro | 0.1070 | 14 |
+| **QR1 (quantum reservoir, mean of 20 seeds)** | volatility + macro | **0.1102** | **10** |
+| RCX (classical reservoir) | volatility + macro | 0.1224 | 21 |
+| HAR (linear) | volatility only | 0.1154 | 4 |
+| RC (classical reservoir) | volatility only | 0.1171 | 51 |
+| AR3 (linear) | volatility only | 0.1180 | 4 |
+| **QR-uni (quantum reservoir, mean of 20 seeds)** | volatility only | **0.1184** | **5** |
 
-Exact simulation, lower is better.
+Exact simulation, lower is better. Comparisons are like for like within an input group.
+QR-uni is the best of four volatility-only reservoir designs we tried.
+
+- **At equal size:** HARX and ARMAX cut to 10 weights score 0.1065 and 0.1121, so QR1 (0.1102)
+  is level with ARMAX and closer to HARX. Given only the macro variables QR1 uses, they score
+  0.1010 and 0.1044 with 9 weights.
+- **Volatility only:** the quantum reservoir matches AR3 and trails HAR and the classical
+  reservoir RC.
+- **Robustness:** the ranking holds with the same lags on both sides, with training windows
+  from 24 to 570 months once the linear models get the same ridge tuning, and on daily
+  forecasts (2,013 test days: HAR 0.1749, best reservoir 0.1760). In low-data settings a
+  4-qubit reservoir is on par with a matched autoregression and a same-size classical
+  reservoir; its one significant edge (1%) does not persist at 6 or 8 qubits.
 
 | QR1 under noise, 1024 shots | Readout trained under the same noise | Readout trained without noise |
 | --- | --- | --- |
@@ -132,7 +147,8 @@ Local simulation with a generic depolarizing model, mean of 3 coupling seeds.
   models are not statistically significant.
 - The control experiments were chosen after seeing earlier results, so they explain what we
   observed and are not independent tests.
-- We tested one reservoir design at ten qubits. This does not show that no quantum model could
-  help on this task.
+- We tested one family of reservoir designs, up to ten qubits. This does not show that no
+  quantum model could help on this task. The clearest lead is an encoding or readout that keeps
+  the sign of its inputs, which the daily leverage effect needs and this design discards.
 
 This effort is supported by Qollab & IonQ.
